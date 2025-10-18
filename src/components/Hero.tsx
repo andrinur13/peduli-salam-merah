@@ -37,7 +37,7 @@ const Hero = () => {
               </Button>
             </Link>
             <Link to="/#tentang">
-              <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white/10 backdrop-blur-sm font-semibold px-8">
+              <Button size="lg" variant="outline" className="border-2 border-white text-red hover:bg-white/10 backdrop-blur-sm font-semibold px-8">
                 Pelajari Lebih Lanjut
               </Button>
             </Link>

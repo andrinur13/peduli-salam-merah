@@ -7,15 +7,15 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero shadow-glow">
               <span className="text-xl font-bold text-white">SM</span>
             </div>
-            <span className="text-xl font-bold text-foreground">SM Peduli</span>
+            <span className="text-xl font-bold text-foreground">SM <span className="text-primary">Peduli</span></span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -36,7 +36,7 @@ const Header = () => {
 
           {/* Desktop CTA */}
           <div className="hidden md:block">
-            <Button className="bg-gradient-hero hover:shadow-glow transition-all duration-300">
+            <Button className="bg-gradient-hero hover:shadow-glow transition-all duration-300 font-medium">
               Donasi Sekarang
             </Button>
           </div>
@@ -81,7 +81,7 @@ const Header = () => {
             >
               Kontak
             </Link>
-            <Button className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300">
+            <Button className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-medium">
               Donasi Sekarang
             </Button>
           </nav>
