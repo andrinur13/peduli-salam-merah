@@ -7,7 +7,7 @@ import { ArrowLeft, Check, Upload, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
 import Footer from "./Footer";
-import { createDonation, fetchBanks, confirmDonationReceipt, type BankItem } from "@/lib/api";
+import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, type BankItem } from "@/lib/api";
 
 interface DonationFormProps {
   campaign: { id: string; title: string };
@@ -27,6 +27,18 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [donationId, setDonationId] = useState<string | null>(null);
+  const [donationDetail, setDonationDetail] = useState<{
+    id: string;
+    transaction_number: string;
+    name: string;
+    payment_method: string;
+    bank_name: string;
+    bank_account: string;
+    bank_account_name: string;
+    amount: number;
+    status: string;
+    created_at: string;
+  } | null>(null);
   const [banks, setBanks] = useState<BankItem[]>([]);
   const [banksLoading, setBanksLoading] = useState<boolean>(false);
   const [banksError, setBanksError] = useState<string | null>(null);
@@ -103,6 +115,12 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       };
       const res = await createDonation(payload);
       setDonationId(res.donation_id);
+      try {
+        const detail = await fetchDonationDetail(res.donation_id);
+        setDonationDetail(detail);
+      } catch (err) {
+        // Non-fatal: proceed without detail
+      }
       setDonationCreatedMsg(`Donasi berhasil dibuat. ID: ${res.donation_id}`);
       toast({ title: "Donasi dibuat", description: `ID Donasi: ${res.donation_id}` });
       setStep(3);
@@ -191,9 +209,9 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
 
           {/* Progress Steps */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-center gap-4 mb-4">
               {[1, 2, 3].map((s) => (
-                <div key={s} className="flex items-center flex-1">
+                <div key={s} className="flex items-center">
                   <div
                     className={`flex h-10 w-10 items-center justify-center rounded-full ${
                       s <= step
@@ -205,7 +223,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                   {s < 3 && (
                     <div
-                      className={`h-1 flex-1 mx-2 ${
+                      className={`h-1 w-12 sm:w-16 mx-2 ${
                         s < step ? "bg-primary" : "bg-muted"
                       }`}
                     ></div>
@@ -213,7 +231,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-center gap-8 text-sm">
               <span className={step >= 1 ? "text-primary font-semibold" : "text-muted-foreground"}>
                 Buat Transaksi
               </span>
@@ -340,9 +358,14 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
 
                 <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
                   <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
-                  <div className="text-3xl font-bold text-primary mb-4">
-                    {formatRupiah(formData.amount)}
+                  <div className="text-3xl font-bold text-primary mb-2">
+                    {formatRupiah(donationDetail?.amount ?? formData.amount)}
                   </div>
+                  {donationDetail?.transaction_number && (
+                    <div className="text-xs text-muted-foreground">
+                      No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
+                    </div>
+                  )}
                   
                   <div className="space-y-4 pt-4 border-t border-primary/20">
                     <div>
@@ -408,6 +431,17 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                               </div>
                               <div className="text-2xl font-bold text-foreground">{selectedBank.account_number}</div>
                               <div className="text-sm text-muted-foreground mt-1">a.n. {selectedBank.name}</div>
+                            </div>
+                          )}
+                          {donationDetail && (
+                            <div className="bg-white p-4 rounded-lg border border-muted">
+                              <div className="font-semibold mb-2">Ringkasan Pembayaran</div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <div>Metode: {donationDetail.payment_method}</div>
+                                <div>Bank: {donationDetail.bank_name}</div>
+                                <div>No. Rekening: {donationDetail.bank_account}</div>
+                                <div>a.n. {donationDetail.bank_account_name}</div>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -477,8 +511,14 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Jumlah</span>
-                        <span className="text-sm font-bold text-primary">{formatRupiah(formData.amount)}</span>
+                        <span className="text-sm font-bold text-primary">{formatRupiah(donationDetail?.amount ?? formData.amount)}</span>
                       </div>
+                      {donationDetail?.transaction_number && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">No. Transaksi</span>
+                          <span className="text-sm font-mono">{donationDetail.transaction_number}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -587,18 +627,21 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     Kami telah menerima bukti transfer Anda. Tim kami akan segera memverifikasi dan mengupdate status donasi.
                   </p>
 
-                  {donationId && (
+                  {donationDetail?.transaction_number && (
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                      <span className="text-sm">ID Donasi:</span>
-                      <span className="font-mono text-sm font-semibold">{donationId}</span>
+                      <span className="text-sm">No. Transaksi:</span>
+                      <span className="font-mono text-sm font-semibold">{donationDetail.transaction_number}</span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(donationId)}
+                        onClick={() => copyToClipboard(donationDetail.transaction_number)}
                       >
                         <Copy className="h-4 w-4 mr-1" /> Salin
                       </Button>
                     </div>
+                  )}
+                  {donationId && (
+                    <div className="text-xs text-muted-foreground">ID Donasi: <span className="font-mono">{donationId}</span></div>
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-4">

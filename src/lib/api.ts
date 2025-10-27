@@ -93,6 +93,28 @@ export type CreateDonationResponse = {
   };
 };
 
+// Donation Detail API
+export type DonationDetailResponse = {
+  meta: {
+    code: number;
+    status: string;
+    message: string;
+    description: string;
+  };
+  data: {
+    id: string;
+    transaction_number: string;
+    name: string;
+    payment_method: string;
+    bank_name: string;
+    bank_account: string;
+    bank_account_name: string;
+    amount: number;
+    status: string;
+    created_at: string;
+  };
+};
+
 const stripTicksAndQuotes = (value?: string) => {
   if (!value) return value;
   // remove backticks and stray quotes/spaces
@@ -253,4 +275,28 @@ export const confirmDonationReceipt = async (
     const text = await res.text();
     throw new Error(`Failed to confirm donation: ${res.status} ${text}`);
   }
+};
+
+export const fetchDonationDetail = async (
+  donationId: string
+): Promise<DonationDetailResponse["data"]> => {
+  const host = import.meta.env.VITE_API_HOST as string | undefined;
+  const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
+
+  if (!host) throw new Error("VITE_API_HOST is not set in .env");
+  if (!apiKey) throw new Error("VITE_API_KEY is not set in .env");
+
+  const url = `${host}/api/donations/${donationId}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch donation detail: ${res.status} ${text}`);
+  }
+  const json = (await res.json()) as DonationDetailResponse;
+  return json.data;
 };
