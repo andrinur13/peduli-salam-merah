@@ -5,9 +5,9 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft } from "lucide-react";
+import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt } from "lucide-react";
 import DonationForm from "@/components/DonationForm";
-import { fetchCampaignById } from "@/lib/api";
+import { fetchCampaignById, UsageItem } from "@/lib/api";
 
 type DetailCampaignUI = {
   id: string;
@@ -25,6 +25,7 @@ type DetailCampaignUI = {
     account_number: string;
     logo?: string;
   };
+  usages?: UsageItem[];
 };
 
 const CampaignDetail = () => {
@@ -59,6 +60,7 @@ const CampaignDetail = () => {
                 logo: d.bank.logo,
               }
             : undefined,
+          usages: d.usages || [],
         };
         setCampaign(mapped);
       } catch (e: unknown) {
@@ -154,6 +156,60 @@ const CampaignDetail = () => {
                           <div className="font-semibold">{campaign.bank.bank_name}</div>
                           <div className="text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
                           <div className="text-sm">No. Rekening: {campaign.bank.account_number}</div>
+                        </div>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Usages Section */}
+                  {campaign.usages && campaign.usages.length > 0 && (
+                    <Card className="p-6 md:p-8 mb-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <h2 className="text-2xl font-bold text-foreground">Penggunaan Dana</h2>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {campaign.usages.map((usage) => (
+                          <div key={usage.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center gap-4">
+                              {usage.icon_url && (
+                                <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
+                                  <img 
+                                    src={usage.icon_url.replace(/`/g, '')} 
+                                    alt={usage.usage_category_name}
+                                    className="w-8 h-8 object-contain"
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-semibold text-gray-900">{usage.usage_category_name}</div>
+                                <div className="text-sm text-gray-600">
+                                  {new Date(usage.created_at).toLocaleDateString('id-ID', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-lg text-primary">
+                                {formatRupiah(parseFloat(usage.amount.replace(/[.,]/g, '')) || 0)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-6 pt-4 border-t border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Total Penggunaan Dana:</span>
+                          <span className="font-bold text-lg text-primary">
+                            {formatRupiah(campaign.usages.reduce((total, usage) => {
+                              const amount = parseFloat(usage.amount.replace(/[.,]/g, ''));
+                              return total + (isNaN(amount) ? 0 : amount);
+                            }, 0))}
+                          </span>
                         </div>
                       </div>
                     </Card>

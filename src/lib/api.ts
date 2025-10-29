@@ -31,6 +31,15 @@ export type CampaignListResponse = {
 
 type DonationItem = Record<string, unknown>;
 
+export type UsageItem = {
+  id: string;
+  usage_category_id: string;
+  usage_category_name: string;
+  amount: string;
+  created_at: string;
+  icon_url?: string;
+};
+
 export type CampaignDetailResponse = {
   meta: {
     code: number;
@@ -47,6 +56,7 @@ export type CampaignDetailResponse = {
       account_number: string;
       logo?: string;
     };
+    usages?: UsageItem[];
   };
 };
 
