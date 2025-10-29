@@ -114,7 +114,7 @@ const CampaignDetail = () => {
         {campaign && (
           <>
             {/* Hero Image */}
-            <div className="relative h-64 md:h-96 bg-muted">
+            <div className="relative h-48 md:h-64 lg:h-96 bg-muted">
               <img
                 src={campaign.image}
                 alt={campaign.title}
@@ -123,27 +123,84 @@ const CampaignDetail = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             </div>
 
-            <div className="container mx-auto px-4 -mt-16 relative z-10 pb-16">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-                <div className="lg:col-span-2">
-                  <Card className="p-6 md:p-8 mb-6">
+            <div className="container mx-auto px-4 -mt-12 md:-mt-16 relative z-10 pb-8 md:pb-16">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+                
+                {/* Mobile: Donation Card First */}
+                <div className="lg:col-span-1 lg:order-2">
+                  <Card className="p-4 md:p-6 lg:sticky lg:top-20">
+                    <div className="space-y-4 mb-6">
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-1">Dana Terkumpul</div>
+                        <div className="text-2xl md:text-3xl font-bold text-primary">
+                          {formatRupiah(campaign.collected)}
+                        </div>
+                      </div>
+
+                      <Progress value={progress} className="h-3" />
+
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Target: {formatRupiah(campaign.target)}</span>
+                        <span className="font-semibold text-primary">{progress.toFixed(0)}%</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6 pb-6 border-b border-border">
+                      <div className="text-center">
+                        <div className="flex justify-center mb-2">
+                          <Users className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                        </div>
+                        <div className="text-base md:text-lg font-bold">{campaign.donorCount}</div>
+                        <div className="text-xs text-muted-foreground">Donatur</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex justify-center mb-2">
+                          <Calendar className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                        </div>
+                        <div className="text-base md:text-lg font-bold">{campaign.daysLeft}</div>
+                        <div className="text-xs text-muted-foreground">Hari Lagi</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex justify-center mb-2">
+                          <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                        </div>
+                        <div className="text-base md:text-lg font-bold">{progress.toFixed(0)}%</div>
+                        <div className="text-xs text-muted-foreground">Tercapai</div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold text-base md:text-lg py-4 md:py-6"
+                      onClick={() => setShowDonationForm(true)}
+                    >
+                      Donasi Sekarang
+                    </Button>
+
+                    <p className="text-xs text-center text-muted-foreground mt-4">
+                      Donasi Anda akan tersalurkan dengan aman dan transparan
+                    </p>
+                  </Card>
+                </div>
+
+                {/* Main Content */}
+                <div className="lg:col-span-2 lg:order-1">
+                  <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
                     <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4">
                       <ArrowLeft className="h-4 w-4" />
                       Kembali ke Beranda
                     </Link>
                     
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4">
                       {campaign.title}
                     </h1>
                     
-                    <div className="flex flex-wrap gap-4 mb-6">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Share2 className="h-4 w-4" />
+                    <div className="flex flex-wrap gap-2 md:gap-4 mb-6">
+                      <Button variant="outline" size="sm" className="gap-2 text-xs md:text-sm">
+                        <Share2 className="h-3 w-3 md:h-4 md:w-4" />
                         Bagikan
                       </Button>
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <Heart className="h-4 w-4" />
+                      <Button variant="outline" size="sm" className="gap-2 text-xs md:text-sm">
+                        <Heart className="h-3 w-3 md:h-4 md:w-4" />
                         Favorit
                       </Button>
                     </div>
@@ -182,16 +239,16 @@ const CampaignDetail = () => {
                   </Card>
 
                   {campaign.bank && (
-                    <Card className="p-6 md:p-8 mb-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-4">Informasi Rekening</h2>
-                      <div className="flex items-center gap-4">
+                    <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
+                      <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4">Informasi Rekening</h2>
+                      <div className="flex items-center gap-3 md:gap-4">
                         {campaign.bank.logo && (
-                          <img src={campaign.bank.logo} alt={campaign.bank.bank_name} className="h-10 w-10 object-contain" />
+                          <img src={campaign.bank.logo} alt={campaign.bank.bank_name} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
                         )}
                         <div>
-                          <div className="font-semibold">{campaign.bank.bank_name}</div>
-                          <div className="text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
-                          <div className="text-sm">No. Rekening: {campaign.bank.account_number}</div>
+                          <div className="font-semibold text-sm md:text-base">{campaign.bank.bank_name}</div>
+                          <div className="text-xs md:text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
+                          <div className="text-xs md:text-sm">No. Rekening: {campaign.bank.account_number}</div>
                         </div>
                       </div>
                     </Card>
@@ -199,27 +256,27 @@ const CampaignDetail = () => {
 
                   {/* Usages Section */}
                   {campaign.usages && campaign.usages.length > 0 && (
-                    <Card className="p-6 md:p-8 mb-6">
-                      <div className="flex items-center gap-3 mb-6">
-                        <h2 className="text-2xl font-bold text-foreground">Penggunaan Dana</h2>
+                    <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
+                      <div className="flex items-center gap-3 mb-4 md:mb-6">
+                        <h2 className="text-xl md:text-2xl font-bold text-foreground">Penggunaan Dana</h2>
                       </div>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-3 md:space-y-4">
                         {campaign.usages.map((usage) => (
-                          <div key={usage.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center gap-4">
+                          <div key={usage.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
+                            <div className="flex items-center gap-3 md:gap-4">
                               {usage.icon_url && (
-                                <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
                                   <img 
                                     src={usage.icon_url.replace(/`/g, '')} 
                                     alt={usage.usage_category_name}
-                                    className="w-8 h-8 object-contain"
+                                    className="w-6 h-6 md:w-8 md:h-8 object-contain"
                                   />
                                 </div>
                               )}
                               <div>
-                                <div className="font-semibold text-gray-900">{usage.usage_category_name}</div>
-                                <div className="text-sm text-gray-600">
+                                <div className="font-semibold text-sm md:text-base text-gray-900">{usage.usage_category_name}</div>
+                                <div className="text-xs md:text-sm text-gray-600">
                                   {new Date(usage.created_at).toLocaleDateString('id-ID', {
                                     day: 'numeric',
                                     month: 'long',
@@ -229,7 +286,7 @@ const CampaignDetail = () => {
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-bold text-lg text-primary">
+                              <div className="font-bold text-sm md:text-lg text-primary">
                                 {formatRupiah(parseFloat(usage.amount.replace(/[.,]/g, '')) || 0)}
                               </div>
                             </div>
@@ -237,10 +294,10 @@ const CampaignDetail = () => {
                         ))}
                       </div>
                       
-                      <div className="mt-6 pt-4 border-t border-gray-200">
+                      <div className="mt-4 md:mt-6 pt-4 border-t border-gray-200">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">Total Penggunaan Dana:</span>
-                          <span className="font-bold text-lg text-primary">
+                          <span className="text-xs md:text-sm text-gray-600">Total Penggunaan Dana:</span>
+                          <span className="font-bold text-base md:text-lg text-primary">
                             {formatRupiah(campaign.usages.reduce((total, usage) => {
                               const amount = parseFloat(usage.amount.replace(/[.,]/g, ''));
                               return total + (isNaN(amount) ? 0 : amount);
@@ -250,62 +307,6 @@ const CampaignDetail = () => {
                       </div>
                     </Card>
                   )}
-                </div>
-
-            {/* Sidebar - Donation Card */}
-                <div className="lg:col-span-1">
-                  <Card className="p-6 sticky top-20">
-                    <div className="space-y-4 mb-6">
-                      <div>
-                        <div className="text-sm text-muted-foreground mb-1">Dana Terkumpul</div>
-                        <div className="text-2xl md:text-3xl font-bold text-primary">
-                          {formatRupiah(campaign.collected)}
-                        </div>
-                      </div>
-
-                      <Progress value={progress} className="h-3" />
-
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Target: {formatRupiah(campaign.target)}</span>
-                        <span className="font-semibold text-primary">{progress.toFixed(0)}%</span>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4 mb-6 pb-6 border-b border-border">
-                      <div className="text-center">
-                        <div className="flex justify-center mb-2">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="text-lg font-bold">{campaign.donorCount}</div>
-                        <div className="text-xs text-muted-foreground">Donatur</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="flex justify-center mb-2">
-                          <Calendar className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="text-lg font-bold">{campaign.daysLeft}</div>
-                        <div className="text-xs text-muted-foreground">Hari Lagi</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="flex justify-center mb-2">
-                          <TrendingUp className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="text-lg font-bold">{progress.toFixed(0)}%</div>
-                        <div className="text-xs text-muted-foreground">Tercapai</div>
-                      </div>
-                    </div>
-
-                    <Button 
-                      className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold text-lg py-6"
-                      onClick={() => setShowDonationForm(true)}
-                    >
-                      Donasi Sekarang
-                    </Button>
-
-                    <p className="text-xs text-center text-muted-foreground mt-4">
-                      Donasi Anda akan tersalurkan dengan aman dan transparan
-                    </p>
-                  </Card>
                 </div>
               </div>
             </div>
