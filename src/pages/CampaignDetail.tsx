@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt } from "lucide-react";
+import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import DonationForm from "@/components/DonationForm";
 import { fetchCampaignById, UsageItem } from "@/lib/api";
 
@@ -29,11 +29,21 @@ type DetailCampaignUI = {
 };
 
 const CampaignDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const [showDonationForm, setShowDonationForm] = useState(false);
   const [campaign, setCampaign] = useState<DetailCampaignUI | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+
+  // Constants for description truncation
+  const DESCRIPTION_PREVIEW_LENGTH = 300;
+
+  // Helper function to truncate description
+  const getTruncatedDescription = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength).trim() + '...';
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -140,8 +150,34 @@ const CampaignDetail = () => {
 
                     <div className="prose max-w-none">
                       <p className="text-muted-foreground whitespace-pre-line">
-                        {campaign.fullDescription}
+                        {showFullDescription 
+                          ? campaign.fullDescription 
+                          : getTruncatedDescription(campaign.fullDescription, DESCRIPTION_PREVIEW_LENGTH)
+                        }
                       </p>
+                      
+                      {campaign.fullDescription.length > DESCRIPTION_PREVIEW_LENGTH && (
+                        <div className="mt-4 flex justify-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowFullDescription(!showFullDescription)}
+                            className="group px-4 py-2 h-auto font-medium text-primary hover:text-primary/80 hover:bg-primary/5 rounded-full border border-primary/20 hover:border-primary/40 transition-all duration-200"
+                          >
+                            {showFullDescription ? (
+                              <>
+                                <span>Tampilkan Lebih Sedikit</span>
+                                <ChevronUp className="ml-2 h-4 w-4 group-hover:-translate-y-0.5 transition-transform duration-200" />
+                              </>
+                            ) : (
+                              <>
+                                <span>Baca Selengkapnya</span>
+                                <ChevronDown className="ml-2 h-4 w-4 group-hover:translate-y-0.5 transition-transform duration-200" />
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Card>
 
