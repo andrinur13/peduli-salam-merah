@@ -185,7 +185,7 @@ const CampaignDetail = () => {
                 {/* Main Content */}
                 <div className="lg:col-span-2 lg:order-1">
                   <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
-                    <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4">
+                    <Link to="/" className="hidden lg:inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4">
                       <ArrowLeft className="h-4 w-4" />
                       Kembali ke Beranda
                     </Link>
