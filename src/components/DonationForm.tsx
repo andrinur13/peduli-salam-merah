@@ -397,7 +397,11 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                                 >
                                   <div className="flex items-center gap-3">
                                     {logo ? (
-                                      <img src={logo} alt={b.bank_name} className="h-10 w-10 object-contain" />
+                                      <img
+                                        src={logo}
+                                        alt={b.bank_name}
+                                        className={`${(/qris/i.test(b.bank_name) || /qris/i.test(b.name)) ? "h-16 w-16" : "h-10 w-10"} object-contain`}
+                                      />
                                     ) : (
                                       <div className="h-10 w-10 rounded bg-muted" />
                                     )}
@@ -420,17 +424,31 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                             <div className="bg-white p-4 rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="font-semibold">{selectedBank.bank_name}</span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyToClipboard(selectedBank.account_number)}
-                                >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Salin
-                                </Button>
+                                {!(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(selectedBank.account_number)}
+                                  >
+                                    <Copy className="h-4 w-4 mr-1" />
+                                    Salin
+                                  </Button>
+                                )}
                               </div>
-                              <div className="text-2xl font-bold text-foreground">{selectedBank.account_number}</div>
-                              <div className="text-sm text-muted-foreground mt-1">a.n. {selectedBank.name}</div>
+                              {(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) ? (
+                                <div className="flex items-center justify-center p-2">
+                                  <img
+                                    src={selectedBank.icon_url || selectedBank.logo}
+                                    alt="QRIS"
+                                    className="max-h-80 w-auto object-contain rounded-md border"
+                                  />
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="text-2xl font-bold text-foreground">{selectedBank.account_number}</div>
+                                  <div className="text-sm text-muted-foreground mt-1">a.n. {selectedBank.name}</div>
+                                </>
+                              )}
                             </div>
                           )}
                           {donationDetail && (
@@ -451,15 +469,26 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                 </div>
 
                 <div className="bg-muted/50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">Cara Transfer:</h3>
-                  <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                    <li>Buka aplikasi mobile banking Anda</li>
-                    <li>Pilih menu transfer ke bank BCA</li>
-                    <li>Masukkan nomor rekening tujuan</li>
-                    <li>Input nominal sesuai yang tertera</li>
-                    <li>Konfirmasi dan selesaikan transaksi</li>
-                    <li>Simpan bukti transfer untuk konfirmasi</li>
-                  </ol>
+                  <h3 className="font-semibold mb-2">{selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? "Cara Bayar QRIS:" : "Cara Transfer:"}</h3>
+                  {selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? (
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                      <li>Buka aplikasi pembayaran yang mendukung QRIS</li>
+                      <li>Pilih menu scan QR</li>
+                      <li>Scan gambar QR di atas</li>
+                      <li>Pastikan nominal sesuai yang tertera</li>
+                      <li>Konfirmasi pembayaran</li>
+                      <li>Simpan bukti pembayaran untuk konfirmasi</li>
+                    </ol>
+                  ) : (
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+                      <li>Buka aplikasi mobile banking Anda</li>
+                      <li>Pilih menu transfer ke bank tujuan</li>
+                      <li>Masukkan nomor rekening</li>
+                      <li>Input nominal sesuai yang tertera</li>
+                      <li>Konfirmasi dan selesaikan transaksi</li>
+                      <li>Simpan bukti transfer untuk konfirmasi</li>
+                    </ol>
+                  )}
                 </div>
 
                 {donationCreatedMsg && (
