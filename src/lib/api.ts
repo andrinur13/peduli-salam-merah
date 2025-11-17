@@ -253,15 +253,22 @@ export const fetchCampaignById = async (id: string): Promise<CampaignDetailRespo
   };
 };
 
-export const fetchBanks = async (): Promise<BankItem[]> => {
+export const fetchBanks = async (campaignId): Promise<BankItem[]> => {
   const host = import.meta.env.VITE_API_HOST as string | undefined;
   const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
 
   if (!host) throw new Error("VITE_API_HOST is not set in .env");
   if (!apiKey) throw new Error("VITE_API_KEY is not set in .env");
 
+  const params = {
+    campaign_id: campaignId
+  }; 
+
+  const query = new URLSearchParams(params).toString();
+
   const url = `${host}/api/banks`;
-  const res = await fetch(url, {
+  const fullUrl = `${url}?${query}`;
+  const res = await fetch(fullUrl, {
     method: "GET",
     headers: {
       "api-key": apiKey,

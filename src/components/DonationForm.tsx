@@ -175,7 +175,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       setBanksLoading(true);
       setBanksError(null);
       try {
-        const list = await fetchBanks();
+        const list = await fetchBanks(campaign.id);
         setBanks(list);
         if (list.length > 0) {
           setSelectedBankId(list[0].id);
@@ -188,7 +188,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       }
     };
     loadBanks();
-  }, []);
+  }, [campaign.id]);
 
   const selectedBank = useMemo(() => banks.find(b => b.id === selectedBankId), [banks, selectedBankId]);
 
