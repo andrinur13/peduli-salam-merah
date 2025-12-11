@@ -69,10 +69,10 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
 
   const handleNextStep = () => {
     if (step === 1) {
-      if (!formData.name || !formData.whatsapp || !formData.email || formData.amount === 0) {
+      if (!formData.name || !formData.whatsapp || formData.amount === 0) {
         toast({
           title: "Data belum lengkap",
-          description: "Mohon lengkapi semua data donasi (nama, WhatsApp, email, jumlah)",
+          description: "Mohon lengkapi data wajib: Nama Lengkap, Nomor WhatsApp, dan Jumlah Donasi",
           variant: "destructive",
         });
         return;
@@ -259,17 +259,18 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Nama Lengkap</Label>
+                    <Label htmlFor="name">Nama Lengkap <span className="text-red-500">*</span></Label>
                     <Input
                       id="name"
                       placeholder="Masukkan nama Anda"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">Email <span className="text-muted-foreground text-sm">(opsional)</span></Label>
                     <Input
                       id="email"
                       type="email"
@@ -280,12 +281,13 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
 
                   <div>
-                    <Label htmlFor="whatsapp">Nomor WhatsApp</Label>
+                    <Label htmlFor="whatsapp">Nomor WhatsApp <span className="text-red-500">*</span></Label>
                     <Input
                       id="whatsapp"
                       placeholder="08123456789"
                       value={formData.whatsapp}
                       onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                      required
                     />
                   </div>
 
