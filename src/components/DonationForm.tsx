@@ -3,6 +3,16 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Check, Upload, Copy, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
@@ -48,6 +58,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [confirmingReceipt, setConfirmingReceipt] = useState<boolean>(false);
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
   const [flowCompleted, setFlowCompleted] = useState<boolean>(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const { toast } = useToast();
 
   const formatRupiah = (amount: number) => {
@@ -77,8 +88,13 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         });
         return;
       }
-      setStep(2);
+      setShowConfirmModal(true);
     }
+  };
+
+  const handleConfirmData = () => {
+    setShowConfirmModal(false);
+    setStep(2);
   };
 
   const handleCreateDonation = async () => {
@@ -708,6 +724,53 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       </main>
 
       <Footer />
+
+      {/* Confirmation Modal */}
+      <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Data Yang Anda inputkan sudah benar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Nama Lengkap:</span>
+              <span className="text-sm font-medium">{formData.name}</span>
+            </div>
+            {formData.email && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Email:</span>
+                <span className="text-sm font-medium">{formData.email}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">WhatsApp:</span>
+              <span className="text-sm font-medium">{formData.whatsapp}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Jumlah Donasi:</span>
+              <span className="text-sm font-bold text-primary">{formatRupiah(formData.amount)}</span>
+            </div>
+            {formData.doa && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Doa/Keterangan:</span>
+                <span className="text-sm font-medium">{formData.doa}</span>
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Ubah Data</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmData}
+              className="bg-gradient-hero hover:shadow-glow"
+            >
+              Ya, Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
