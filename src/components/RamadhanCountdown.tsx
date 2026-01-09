@@ -12,7 +12,7 @@ const RamadhanCountdown = () => {
 
   useEffect(() => {
     // Set Ramadhan 2026 date (March 1, 2026 - approximate)
-    const ramadhanDate = new Date("2026-03-01T00:00:00");
+    const ramadhanDate = new Date("2026-02-19T00:00:00");
 
     const calculateTimeLeft = () => {
       const now = new Date();
