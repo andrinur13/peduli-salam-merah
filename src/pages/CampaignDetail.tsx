@@ -5,7 +5,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp, Maximize2, X } from "lucide-react";
 import DonationForm from "@/components/DonationForm";
 import { fetchCampaignById, UsageItem } from "@/lib/api";
 
@@ -35,6 +36,7 @@ const CampaignDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Constants for description truncation
   const DESCRIPTION_PREVIEW_LENGTH = 300;
@@ -114,14 +116,39 @@ const CampaignDetail = () => {
         {campaign && (
           <>
             {/* Hero Image */}
-            <div className="relative h-48 md:h-64 lg:h-96 bg-muted">
+            <div 
+              className="relative h-48 md:h-64 lg:h-96 bg-muted cursor-pointer group"
+              onClick={() => setShowImageModal(true)}
+            >
               <img
                 src={campaign.image}
                 alt={campaign.title}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Maximize2 className="h-5 w-5" />
+              </div>
             </div>
+
+            {/* Image Modal */}
+            <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+              <DialogContent className="max-w-7xl w-full p-0 overflow-hidden bg-black/95 border-none">
+                <button
+                  onClick={() => setShowImageModal(false)}
+                  className="absolute top-4 right-4 z-50 rounded-full bg-black/50 p-2 text-white hover:bg-black/70 transition-colors"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+                <div className="relative w-full h-[90vh] flex items-center justify-center">
+                  <img
+                    src={campaign.image}
+                    alt={campaign.title}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <div className="container mx-auto px-4 -mt-12 md:-mt-16 relative z-10 pb-8 md:pb-16">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
@@ -185,10 +212,10 @@ const CampaignDetail = () => {
                 {/* Main Content */}
                 <div className="lg:col-span-2 lg:order-1">
                   <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
-                    <Link to="/" className="hidden lg:inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4">
+                    {/* <Link to="/" className="hidden lg:inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-4">
                       <ArrowLeft className="h-4 w-4" />
                       Kembali ke Beranda
-                    </Link>
+                    </Link> */}
                     
                     <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-foreground mb-4">
                       {campaign.title}
@@ -238,7 +265,7 @@ const CampaignDetail = () => {
                     </div>
                   </Card>
 
-                  {campaign.bank && (
+                  {/* {campaign.bank && (
                     <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
                       <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4">Informasi Rekening</h2>
                       <div className="flex items-center gap-3 md:gap-4">
@@ -252,7 +279,7 @@ const CampaignDetail = () => {
                         </div>
                       </div>
                     </Card>
-                  )}
+                  )} */}
 
                   {/* Usages Section */}
                   {campaign.usages && campaign.usages.length > 0 && (
