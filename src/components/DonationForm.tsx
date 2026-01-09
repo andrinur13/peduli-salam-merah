@@ -687,9 +687,6 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       </Button>
                     </div>
                   )}
-                  {donationId && (
-                    <div className="text-xs text-muted-foreground">ID Donasi: <span className="font-mono">{donationId}</span></div>
-                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-4">
                     <Button className="w-full" onClick={onBack}>

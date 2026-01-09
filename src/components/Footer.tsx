@@ -9,10 +9,7 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero">
-                <span className="text-xl font-bold text-white">SM</span>
-              </div>
-              <span className="text-xl font-bold text-foreground">Ramadhan Project 1447 H / Surabaya Mengaji</span>
+              <span className="text-xl font-bold text-foreground">Ramadhan Project 1447 H</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Platform donasi terpercaya untuk menyalurkan kebaikan kepada sesama yang membutuhkan.
