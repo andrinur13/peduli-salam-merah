@@ -343,7 +343,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   )}
 
                   <div>
-                    <Label htmlFor="doa">Doa/Keterangan</Label>
+                    <Label htmlFor="doa">Doa/Keterangan (opsional)</Label>
                     <Input
                       id="doa"
                       placeholder="Doa atau pesan untuk campaign"

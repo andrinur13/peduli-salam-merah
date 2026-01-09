@@ -16,31 +16,13 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-semibold text-foreground mb-4">Link Cepat</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Beranda
-                </Link>
-              </li>
-              <li>
-                <Link to="/#campaigns" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Campaign
-                </Link>
-              </li>
-              <li>
-                <Link to="/#tentang" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Tentang Kami
-                </Link>
-              </li>
-              <li>
-                <Link to="/#campaigns" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Donasi
-                </Link>
-              </li>
-            </ul>
+          {/* Logo SM Ramadhan */}
+          <div className="flex justify-center md:justify-start">
+            <img 
+              src="/sm_ramadhan.png" 
+              alt="SM Ramadhan" 
+              className="h-24 w-auto object-contain"
+            />
           </div>
 
           {/* Contact */}
