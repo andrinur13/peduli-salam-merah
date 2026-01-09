@@ -53,62 +53,54 @@ const Footer = () => {
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  Jl. Raya Surabaya No. 123, Surabaya, Jawa Timur
+                  ⁠Jl. Semampir Tengah No.39, Medokan Semampir, Kec. Sukolilo, Surabaya, Jawa Timur 60119
                 </span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-primary flex-shrink-0" />
                 <a href="mailto:info@smpeduli.org" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  info@smpeduli.org
+                  ⁠surabayamengaji1@gmail.com
                 </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-primary flex-shrink-0" />
-                <a href="https://wa.me/628123456789" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  +62 812-3456-789
+                <a href="https://wa.me/6281235322441" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  +62812-3532-2441
                 </a>
               </li>
             </ul>
           </div>
 
           {/* Social Media */}
-          <div>
+            <div>
             <h3 className="font-semibold text-foreground mb-4">Ikuti Kami</h3>
             <div className="flex gap-3">
               <a
-                href="https://facebook.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+              href="https://facebook.com/surabayamengaji"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-                <Facebook className="h-5 w-5" />
+              <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+              href="https://instagram.com/surabayamengaji"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-                <Instagram className="h-5 w-5" />
+              <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+              href="https://youtube.com/surabayamengaji"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a
-                href="https://youtube.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
-              >
-                <Youtube className="h-5 w-5" />
+              <Youtube className="h-5 w-5" />
               </a>
             </div>
-          </div>
+            </div>
         </div>
 
         {/* Copyright */}
