@@ -59,6 +59,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [confirmSuccess, setConfirmSuccess] = useState<string | null>(null);
   const [flowCompleted, setFlowCompleted] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const { toast } = useToast();
 
   const formatRupiah = (amount: number) => {
@@ -226,6 +227,61 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         title: "Buka di Tab Baru",
         description: "Silakan klik kanan pada gambar dan pilih 'Simpan gambar sebagai...' untuk mengunduh",
       });
+    }
+  };
+
+  const handleFileSelect = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File terlalu besar",
+        description: "Ukuran file maksimal 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Format file tidak didukung",
+        description: "Silakan upload file gambar (PNG, JPG, JPEG)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProofFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProofImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
     }
   };
 
@@ -637,11 +693,23 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     <Label>Bukti Transfer</Label>
                     <div className="mt-2">
                       {!proofImage ? (
-                        <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                        <label 
+                          className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
+                            isDragOver 
+                              ? 'border-primary bg-primary/5 border-solid' 
+                              : 'border-border hover:bg-muted/50'
+                          }`}
+                          onDragEnter={handleDragEnter}
+                          onDragLeave={handleDragLeave}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                        >
                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                            <Upload className={`h-10 w-10 mb-3 transition-colors ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
                             <p className="mb-2 text-sm text-muted-foreground">
-                              <span className="font-semibold">Klik untuk upload</span>
+                              <span className="font-semibold">
+                                {isDragOver ? 'Lepaskan file di sini' : 'Klik untuk upload atau seret file ke sini'}
+                              </span>
                             </p>
                             <p className="text-xs text-muted-foreground">PNG, JPG (MAX. 5MB)</p>
                           </div>
@@ -650,16 +718,9 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                             className="hidden"
                             accept="image/*"
                             onChange={(e) => {
-                              const file = e.target.files?.[0] ?? null;
-                              setProofFile(file);
+                              const file = e.target.files?.[0];
                               if (file) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setProofImage(reader.result as string);
-                                };
-                                reader.readAsDataURL(file);
-                              } else {
-                                setProofImage(null);
+                                handleFileSelect(file);
                               }
                             }}
                           />
