@@ -138,7 +138,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         // Non-fatal: proceed without detail
       }
       setDonationCreatedMsg(`Donasi berhasil dibuat. ID: ${res.donation_id}`);
-      toast({ title: "Donasi dibuat", description: `ID Donasi: ${res.donation_id}` });
+      toast({ title: "Donasi dibuat", description: `` });
       setStep(3);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Gagal membuat donasi";
@@ -167,7 +167,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         return;
       }
       await confirmDonationReceipt(donationId, proofFile);
-      toast({ title: "Konfirmasi donasi berhasil!", description: `ID Donasi: ${donationId}` });
+      toast({ title: "Konfirmasi donasi berhasil!", description: `` });
       setConfirmSuccess(`Donasi berhasil dikonfirmasi. ID: ${donationId}`);
       setFlowCompleted(true);
     } catch (e: unknown) {
@@ -696,7 +696,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       className="w-full"
                       variant="secondary"
                       onClick={() => {
-                        const text = encodeURIComponent(`Saya baru saja berdonasi untuk "${campaign.title}". ID Donasi: ${donationId ?? "-"}`);
+                        const text = encodeURIComponent(`Saya baru saja berdonasi untuk "${campaign.title}".`);
                         window.open(`https://wa.me/?text=${text}`, "_blank");
                       }}
                     >
