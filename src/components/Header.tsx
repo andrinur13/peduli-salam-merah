@@ -15,7 +15,9 @@ const Header = () => {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero shadow-glow">
               <span className="text-xl font-bold text-white">SM</span>
             </div>
-            <span className="text-xl font-bold text-foreground">SM <span className="text-primary">Peduli</span></span>
+            <span className="text-xl font-bold text-foreground">
+              Ramadhan Project 1447 H
+            </span>
           </Link>
 
           {/* Desktop Navigation */}

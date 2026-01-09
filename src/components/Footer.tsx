@@ -12,7 +12,7 @@ const Footer = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero">
                 <span className="text-xl font-bold text-white">SM</span>
               </div>
-              <span className="text-xl font-bold text-foreground">SM Peduli</span>
+              <span className="text-xl font-bold text-foreground">Ramadhan Project 1447 H / Surabaya Mengaji</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Platform donasi terpercaya untuk menyalurkan kebaikan kepada sesama yang membutuhkan.
