@@ -12,9 +12,6 @@ const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-hero shadow-glow">
-              <span className="text-xl font-bold text-white">SM</span>
-            </div>
             <span className="text-xl font-bold text-foreground">
               Ramadhan Project 1447 H
             </span>
