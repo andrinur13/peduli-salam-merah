@@ -13,7 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Check, Upload, Copy, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Upload, Copy, Loader2, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
 import Footer from "./Footer";
@@ -199,6 +199,33 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     } else {
       // Jika sudah selesai, kembali ke campaign detail
       onBack();
+    }
+  };
+
+  const downloadQRIS = async (imageUrl: string, bankName: string) => {
+    try {
+      // Coba download langsung terlebih dahulu
+      const response = await fetch(imageUrl, { mode: 'cors' });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `QRIS_${bankName.replace(/\s+/g, '_')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast({
+        title: "Berhasil!",
+        description: "Gambar QRIS berhasil diunduh",
+      });
+    } catch (error) {
+      // Jika CORS error, buka di tab baru
+      window.open(imageUrl, '_blank');
+      toast({
+        title: "Buka di Tab Baru",
+        description: "Silakan klik kanan pada gambar dan pilih 'Simpan gambar sebagai...' untuk mengunduh",
+      });
     }
   };
 
@@ -458,7 +485,18 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                             <div className="bg-white p-4 rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="font-semibold">{selectedBank.bank_name}</span>
-                                {!(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) && (
+                                {(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) ? (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => downloadQRIS(selectedBank.icon_url || selectedBank.logo, selectedBank.bank_name)}
+                                    >
+                                      <Download className="h-4 w-4 mr-1" />
+                                      Unduh QR
+                                    </Button>
+                                  </div>
+                                ) : (
                                   <Button
                                     variant="ghost"
                                     size="sm"
