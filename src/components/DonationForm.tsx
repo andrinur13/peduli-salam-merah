@@ -186,6 +186,22 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     });
   };
 
+  const handleBackNavigation = () => {
+    if (step === 1) {
+      // Jika di step 1, kembali ke campaign detail
+      onBack();
+    } else if (step === 2) {
+      // Jika di step 2, kembali ke step 1 tanpa menghapus data
+      setStep(1);
+    } else if (step === 3 && !flowCompleted) {
+      // Jika di step 3 dan belum selesai, kembali ke step 2 tanpa menghapus data
+      setStep(2);
+    } else {
+      // Jika sudah selesai, kembali ke campaign detail
+      onBack();
+    }
+  };
+
   useEffect(() => {
     const loadBanks = async () => {
       setBanksLoading(true);
@@ -217,7 +233,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
           <Button
             variant="ghost"
             className="mb-6"
-            onClick={onBack}
+            onClick={handleBackNavigation}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Kembali
@@ -515,20 +531,30 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 )}
 
-                <Button
-                  className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
-                  onClick={handleCreateDonation}
-                  disabled={creatingDonation}
-                >
-                  {creatingDonation ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Membuat Donasi...
-                    </span>
-                  ) : (
-                    "Buat Donasi"
-                  )}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(1)}
+                    className="w-full"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Kembali
+                  </Button>
+                  <Button
+                    className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
+                    onClick={handleCreateDonation}
+                    disabled={creatingDonation}
+                  >
+                    {creatingDonation ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Membuat Donasi...
+                      </span>
+                    ) : (
+                      "Buat Donasi"
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -630,20 +656,30 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 )}
 
-                <Button
-                  className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
-                  onClick={handleConfirmReceipt}
-                  disabled={confirmingReceipt}
-                >
-                  {confirmingReceipt ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Mengonfirmasi...
-                    </span>
-                  ) : (
-                    "Konfirmasi Donasi"
-                  )}
-                </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(2)}
+                    className="w-full"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Kembali
+                  </Button>
+                  <Button
+                    className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
+                    onClick={handleConfirmReceipt}
+                    disabled={confirmingReceipt}
+                  >
+                    {confirmingReceipt ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Mengonfirmasi...
+                      </span>
+                    ) : (
+                      "Konfirmasi Donasi"
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
