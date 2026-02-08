@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { ArrowLeft, Check, Upload, Copy, Loader2, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
 import Footer from "./Footer";
-import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, type BankItem } from "@/lib/api";
+import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, type BankItem, type DonationDetailResponse } from "@/lib/api";
 
 interface DonationFormProps {
   campaign: { id: string; title: string };
@@ -37,22 +37,14 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [donationId, setDonationId] = useState<string | null>(null);
-  const [donationDetail, setDonationDetail] = useState<{
-    id: string;
-    transaction_number: string;
-    name: string;
-    payment_method: string;
-    bank_name: string;
-    bank_account: string;
-    bank_account_name: string;
-    amount: number;
-    status: string;
-    created_at: string;
-  } | null>(null);
+  const [donationDetail, setDonationDetail] = useState<DonationDetailResponse["data"] | null>(null);
   const [banks, setBanks] = useState<BankItem[]>([]);
   const [banksLoading, setBanksLoading] = useState<boolean>(false);
   const [banksError, setBanksError] = useState<string | null>(null);
   const [selectedBankId, setSelectedBankId] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "online_xendit">("bank_transfer");
+  const [xenditInvoiceUrl, setXenditInvoiceUrl] = useState<string | null>(null);
+  const [isPollingStatus, setIsPollingStatus] = useState<boolean>(false);
   const [creatingDonation, setCreatingDonation] = useState<boolean>(false);
   const [donationCreatedMsg, setDonationCreatedMsg] = useState<string | null>(null);
   const [confirmingReceipt, setConfirmingReceipt] = useState<boolean>(false);
@@ -61,6 +53,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [isDragOver, setIsDragOver] = useState<boolean>(false);
   const { toast } = useToast();
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -102,7 +96,9 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     try {
       setCreatingDonation(true);
       setDonationCreatedMsg(null);
-      if (!selectedBankId) {
+      
+      // Validate based on payment method
+      if (paymentMethod === "bank_transfer" && !selectedBankId) {
         toast({
           title: "Pilih rekening terlebih dahulu",
           description: "Mohon pilih rekening tujuan bank",
@@ -111,6 +107,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         setCreatingDonation(false);
         return;
       }
+      
       if (formData.amount <= 0) {
         toast({
           title: "Jumlah donasi tidak valid",
@@ -121,6 +118,53 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         return;
       }
 
+      // Handle XENDIT payment
+      if (paymentMethod === "online_xendit") {
+        const payload = {
+          campaign_id: campaign.id,
+          amount: formData.amount,
+          name: formData.name,
+          email: formData.email,
+          phone_number: formData.whatsapp,
+          doa: formData.doa || undefined,
+          bank_id: "XENDIT",
+        };
+        
+        const res = await createDonation(payload);
+        
+        // Store donation ID (could be transaction_id for XENDIT)
+        const donationIdFromResponse = res.donation_id || res.transaction_id || "";
+        setDonationId(donationIdFromResponse);
+        
+        // Store invoice URL
+        if (res.invoice_url) {
+          setXenditInvoiceUrl(res.invoice_url);
+        }
+        
+        // Fetch detail to get latest info
+        if (donationIdFromResponse) {
+          try {
+            const detail = await fetchDonationDetail(donationIdFromResponse);
+            setDonationDetail(detail);
+            
+            // Start polling for status updates
+            startStatusPolling(donationIdFromResponse);
+          } catch (err) {
+            console.error("Failed to fetch donation detail:", err);
+          }
+        }
+        
+        toast({ 
+          title: "Invoice dibuat", 
+          description: "Silakan selesaikan pembayaran di halaman XENDIT" 
+        });
+        
+        // Move to step 3 to show iframe
+        setStep(3);
+        return;
+      }
+
+      // Handle Bank Transfer payment
       const payload = {
         campaign_id: campaign.id,
         amount: formData.amount,
@@ -131,14 +175,15 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         bank_id: selectedBankId,
       };
       const res = await createDonation(payload);
-      setDonationId(res.donation_id);
+      const donationIdFromResponse = res.donation_id || res.transaction_id || "";
+      setDonationId(donationIdFromResponse);
       try {
-        const detail = await fetchDonationDetail(res.donation_id);
+        const detail = await fetchDonationDetail(donationIdFromResponse);
         setDonationDetail(detail);
       } catch (err) {
         // Non-fatal: proceed without detail
       }
-      setDonationCreatedMsg(`Donasi berhasil dibuat. ID: ${res.donation_id}`);
+      setDonationCreatedMsg(`Donasi berhasil dibuat. ID: ${donationIdFromResponse}`);
       toast({ title: "Donasi dibuat", description: `` });
       setStep(3);
     } catch (e: unknown) {
@@ -185,6 +230,56 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       title: "Disalin!",
       description: "Nomor rekening berhasil disalin",
     });
+  };
+
+  // Polling function to check payment status
+  const startStatusPolling = (donationIdToCheck: string) => {
+    setIsPollingStatus(true);
+    
+    // Clear any existing polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+    }
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const detail = await fetchDonationDetail(donationIdToCheck);
+        setDonationDetail(detail);
+        
+        // If status is PAID, stop polling and show success
+        if (detail.status === "PAID") {
+          if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+          }
+          if (pollingTimeoutRef.current) {
+            clearTimeout(pollingTimeoutRef.current);
+            pollingTimeoutRef.current = null;
+          }
+          setIsPollingStatus(false);
+          setFlowCompleted(true);
+          setXenditInvoiceUrl(null); // Hide iframe
+          toast({ 
+            title: "Pembayaran Berhasil!", 
+            description: "Terima kasih atas donasi Anda" 
+          });
+        }
+      } catch (err) {
+        console.error("Failed to poll donation status:", err);
+      }
+    }, 3000); // Poll every 3 seconds
+    
+    // Stop polling after 10 minutes (600 seconds)
+    pollingTimeoutRef.current = setTimeout(() => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      setIsPollingStatus(false);
+    }, 600000);
   };
 
   const handleBackNavigation = () => {
@@ -304,6 +399,18 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     };
     loadBanks();
   }, [campaign.id]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const selectedBank = useMemo(() => banks.find(b => b.id === selectedBankId), [banks, selectedBankId]);
 
@@ -466,25 +573,96 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-1">
-                    Pilih Rekening & Pembayaran
+                    Pilih Metode Pembayaran
                   </h2>
                   <p className="text-muted-foreground text-sm">
-                    Pilih rekening tujuan terlebih dahulu, lalu lakukan transfer sesuai nominal
+                    Pilih metode pembayaran yang Anda inginkan
                   </p>
                 </div>
 
-                <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
-                  <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
-                  <div className="text-3xl font-bold text-primary mb-2">
-                    {formatRupiah(donationDetail?.amount ?? formData.amount)}
-                  </div>
-                  {donationDetail?.transaction_number && (
-                    <div className="text-xs text-muted-foreground">
-                      No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
+                {/* Payment Method Selection */}
+                <div className="space-y-3">
+                  <Label>Metode Pembayaran</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setPaymentMethod("bank_transfer")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setPaymentMethod("bank_transfer");
+                      }}
+                      className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                        paymentMethod === "bank_transfer"
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50 bg-white"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                          <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-semibold">Transfer Bank</div>
+                          <div className="text-xs text-muted-foreground mt-1">Transfer manual ke rekening</div>
+                        </div>
+                      </div>
+                      {paymentMethod === "bank_transfer" && (
+                        <div className="absolute top-2 right-2 text-primary">
+                          <Check className="h-5 w-5" />
+                        </div>
+                      )}
                     </div>
-                  )}
-                  
-                  <div className="space-y-4 pt-4 border-t border-primary/20">
+
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setPaymentMethod("online_xendit")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setPaymentMethod("online_xendit");
+                      }}
+                      className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                        paymentMethod === "online_xendit"
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50 bg-white"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div className="font-semibold">Online - XENDIT</div>
+                          <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan berbagai metode</div>
+                        </div>
+                      </div>
+                      {paymentMethod === "online_xendit" && (
+                        <div className="absolute top-2 right-2 text-primary">
+                          <Check className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Transfer Section */}
+                {paymentMethod === "bank_transfer" && (
+                  <>
+                    <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
+                      <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
+                      <div className="text-3xl font-bold text-primary mb-2">
+                        {formatRupiah(donationDetail?.amount ?? formData.amount)}
+                      </div>
+                      {donationDetail?.transaction_number && (
+                        <div className="text-xs text-muted-foreground">
+                          No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4 pt-4 border-t border-primary/20">
                     <div>
                       <div className="text-sm text-muted-foreground mb-2">Rekening Tujuan</div>
                       {banksLoading && (
@@ -593,10 +771,10 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
+                      </div>
+                    </div>
 
-                <div className="bg-muted/50 p-4 rounded-lg">
+                    <div className="bg-muted/50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-2">{selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? "Cara Bayar QRIS:" : "Cara Transfer:"}</h3>
                   {selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? (
                     <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
@@ -617,9 +795,99 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       <li>Simpan bukti transfer untuk konfirmasi</li>
                     </ol>
                   )}
-                </div>
+                    </div>
+                  </>
+                )}
 
-                {donationCreatedMsg && (
+                {/* Online XENDIT Section */}
+                {paymentMethod === "online_xendit" && (
+                  <div className="space-y-6">
+                    <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
+                      <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
+                      <div className="text-3xl font-bold text-primary mb-2">
+                        {formatRupiah(donationDetail?.amount ?? formData.amount)}
+                      </div>
+                      {donationDetail?.transaction_number && (
+                        <div className="text-xs text-muted-foreground">
+                          No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg border-2 border-border">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center">
+                          <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-lg">XENDIT Payment Gateway</h3>
+                          <p className="text-sm text-muted-foreground">Powered by Xendit - Secure & Instant</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="bg-muted/50 p-4 rounded-lg">
+                          <h4 className="font-semibold mb-3">Metode Pembayaran yang Tersedia:</h4>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>Virtual Account (BCA, BNI, BRI, Mandiri, dll)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>E-Wallet (OVO, DANA, LinkAja, ShopeePay)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>QRIS (Semua aplikasi e-wallet)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>Kartu Kredit/Debit</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>Alfamart & Indomaret</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-green-600" />
+                              <span>Direct Debit</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                          <div className="flex gap-3">
+                            <svg className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            <div className="text-sm text-blue-800">
+                              <p className="font-semibold mb-1">Cara Pembayaran:</p>
+                              <ol className="list-decimal list-inside space-y-1">
+                                <li>Klik tombol "Bayar dengan XENDIT"</li>
+                                <li>Anda akan diarahkan ke halaman pembayaran Xendit</li>
+                                <li>Pilih metode pembayaran yang Anda inginkan</li>
+                                <li>Ikuti instruksi pembayaran</li>
+                                <li>Setelah berhasil, Anda akan otomatis kembali ke halaman konfirmasi</li>
+                              </ol>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                          </svg>
+                          <span>Transaksi Anda dijamin aman dan terenkripsi</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {donationCreatedMsg && paymentMethod === "bank_transfer" && (
                   <div className="p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
                     {donationCreatedMsg}
                   </div>
@@ -637,23 +905,23 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   <Button
                     className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
                     onClick={handleCreateDonation}
-                    disabled={creatingDonation}
+                    disabled={creatingDonation || (paymentMethod === "bank_transfer" && !selectedBankId)}
                   >
                     {creatingDonation ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Membuat Donasi...
+                        {paymentMethod === "online_xendit" ? "Memproses..." : "Membuat Donasi..."}
                       </span>
                     ) : (
-                      "Buat Donasi"
+                      paymentMethod === "online_xendit" ? "Bayar dengan XENDIT" : "Buat Donasi"
                     )}
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* Step 3: Upload Proof or Success Pane */}
-            {step === 3 && !flowCompleted && (
+            {/* Step 3: Upload Proof or XENDIT Payment or Success Pane */}
+            {step === 3 && !flowCompleted && paymentMethod === "bank_transfer" && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -782,6 +1050,182 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
               </div>
             )}
 
+            {/* Step 3: XENDIT Payment */}
+            {step === 3 && !flowCompleted && paymentMethod === "online_xendit" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Selesaikan Pembayaran
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Silakan lakukan pembayaran melalui halaman XENDIT di bawah ini
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label>Detail Donasi</Label>
+                    <div className="p-4 bg-muted/50 rounded-lg space-y-2 mt-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Nama</span>
+                        <span className="text-sm font-medium">{formData.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">WhatsApp</span>
+                        <span className="text-sm font-medium">{formData.whatsapp}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Jumlah</span>
+                        <span className="text-sm font-bold text-primary">{formatRupiah(donationDetail?.amount ?? formData.amount)}</span>
+                      </div>
+                      {donationDetail?.transaction_number && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">No. Transaksi</span>
+                          <span className="text-sm font-mono">{donationDetail.transaction_number}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Status</span>
+                        <span className={`text-sm font-semibold ${
+                          donationDetail?.status === "PAID" ? "text-green-600" : "text-yellow-600"
+                        }`}>
+                          {donationDetail?.status === "PAID" ? "✓ LUNAS" : "⏱ MENUNGGU PEMBAYARAN"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {xenditInvoiceUrl && (
+                    <div className="space-y-3">
+                      <Label>Halaman Pembayaran XENDIT</Label>
+                      <div className="border-2 border-border rounded-lg overflow-hidden bg-white">
+                        <iframe
+                          src={xenditInvoiceUrl}
+                          className="w-full h-[600px]"
+                          title="XENDIT Payment"
+                          allow="payment"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className={`h-4 w-4 ${isPollingStatus ? 'animate-spin' : ''}`} />
+                        <span>
+                          {isPollingStatus 
+                            ? "Menunggu konfirmasi pembayaran..." 
+                            : "Silakan selesaikan pembayaran di atas"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!xenditInvoiceUrl && donationDetail?.payment_url && (
+                    <div className="space-y-3">
+                      <Label>Link Pembayaran</Label>
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <a 
+                          href={donationDetail.payment_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline break-all"
+                        >
+                          {donationDetail.payment_url}
+                        </a>
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(donationDetail.payment_url!, "_blank")}
+                        className="w-full"
+                      >
+                        Buka Halaman Pembayaran
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <div className="flex gap-3">
+                    <svg className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">Catatan Penting:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Selesaikan pembayaran di halaman XENDIT</li>
+                        <li>Jangan tutup halaman ini sampai pembayaran selesai</li>
+                        <li>Status akan diperbarui otomatis setelah pembayaran berhasil</li>
+                        <li>Jika ada masalah, hubungi customer service</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setStep(2);
+                      setXenditInvoiceUrl(null);
+                      setIsPollingStatus(false);
+                      if (pollingIntervalRef.current) {
+                        clearInterval(pollingIntervalRef.current);
+                        pollingIntervalRef.current = null;
+                      }
+                      if (pollingTimeoutRef.current) {
+                        clearTimeout(pollingTimeoutRef.current);
+                        pollingTimeoutRef.current = null;
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Kembali
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={async () => {
+                      if (donationId) {
+                        try {
+                          const detail = await fetchDonationDetail(donationId);
+                          setDonationDetail(detail);
+                          if (detail.status === "PAID") {
+                            setFlowCompleted(true);
+                            setXenditInvoiceUrl(null);
+                            if (pollingIntervalRef.current) {
+                              clearInterval(pollingIntervalRef.current);
+                              pollingIntervalRef.current = null;
+                            }
+                            if (pollingTimeoutRef.current) {
+                              clearTimeout(pollingTimeoutRef.current);
+                              pollingTimeoutRef.current = null;
+                            }
+                            toast({ 
+                              title: "Pembayaran Berhasil!", 
+                              description: "Terima kasih atas donasi Anda" 
+                            });
+                          } else {
+                            toast({ 
+                              title: "Status: " + detail.status, 
+                              description: "Pembayaran masih dalam proses" 
+                            });
+                          }
+                        } catch (err) {
+                          toast({ 
+                            title: "Gagal memeriksa status", 
+                            variant: "destructive" 
+                          });
+                        }
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Cek Status Manual
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {step === 3 && flowCompleted && (
               <div className="relative overflow-hidden">
                 {/* Confetti dots */}
@@ -823,30 +1267,46 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-4">
-                    <Button className="w-full" onClick={onBack}>
-                      Kembali ke Campaign
-                    </Button>
-                    <Button
-                      className="w-full"
-                      variant="secondary"
-                      onClick={() => {
-                        const text = encodeURIComponent(`Saya baru saja berdonasi untuk "${campaign.title}".`);
-                        window.open(`https://wa.me/?text=${text}`, "_blank");
-                      }}
-                    >
-                      Bagikan via WhatsApp
-                    </Button>
-                    <Button
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => {
-                        setFlowCompleted(false);
-                        setConfirmSuccess(null);
-                      }}
-                    >
-                      Upload Ulang Bukti
-                    </Button>
+                  <div className="flex flex-col items-center gap-3 w-full mt-6">
+                    {/* Primary Action Buttons - Always centered */}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                      <Button 
+                        className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold" 
+                        size="lg"
+                        onClick={onBack}
+                      >
+                        Kembali ke Campaign
+                      </Button>
+                      <Button
+                        className="w-full font-semibold"
+                        variant="secondary"
+                        size="lg"
+                        onClick={() => {
+                          const text = encodeURIComponent(`Saya baru saja berdonasi untuk "${campaign.title}".`);
+                          window.open(`https://wa.me/?text=${text}`, "_blank");
+                        }}
+                      >
+                        <svg className="h-4 w-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        Bagikan via WhatsApp
+                      </Button>
+                    </div>
+                    
+                    {/* Secondary Action - Only for Bank Transfer */}
+                    {paymentMethod === "bank_transfer" && (
+                      <Button
+                        className="w-full max-w-md"
+                        variant="outline"
+                        onClick={() => {
+                          setFlowCompleted(false);
+                          setConfirmSuccess(null);
+                        }}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Ulang Bukti Transfer
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

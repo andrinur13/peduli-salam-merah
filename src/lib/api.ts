@@ -99,7 +99,14 @@ export type CreateDonationResponse = {
     description: string;
   };
   data: {
-    donation_id: string;
+    donation_id?: string;
+    transaction_id?: string;
+    external_id?: string;
+    invoice_url?: string;
+    invoice_id?: number;
+    amount?: number;
+    status?: string;
+    expiry_date?: string;
   };
 };
 
@@ -116,11 +123,12 @@ export type DonationDetailResponse = {
     transaction_number: string;
     name: string;
     payment_method: string;
-    bank_name: string;
-    bank_account: string;
-    bank_account_name: string;
+    bank_name: string | null;
+    bank_account: string | null;
+    bank_account_name: string | null;
     amount: number;
     status: string;
+    payment_url?: string | null;
     created_at: string;
   };
 };
