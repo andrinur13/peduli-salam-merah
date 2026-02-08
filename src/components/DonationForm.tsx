@@ -156,7 +156,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         
         toast({ 
           title: "Invoice dibuat", 
-          description: "Silakan selesaikan pembayaran di halaman XENDIT" 
+          description: "Silakan selesaikan pembayaran online" 
         });
         
         // Move to step 3 to show iframe
@@ -635,7 +635,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                           </svg>
                         </div>
                         <div>
-                          <div className="font-semibold">Online - XENDIT</div>
+                          <div className="font-semibold">Pembayaran Online</div>
                           <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan berbagai metode</div>
                         </div>
                       </div>
@@ -822,8 +822,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                           </svg>
                         </div>
                         <div>
-                          <h3 className="font-bold text-lg">XENDIT Payment Gateway</h3>
-                          <p className="text-sm text-muted-foreground">Powered by Xendit - Secure & Instant</p>
+                          <h3 className="font-bold text-lg">Online Payment Gateway</h3>
+                          <p className="text-sm text-muted-foreground">Aman, Cepat & Terpercaya</p>
                         </div>
                       </div>
 
@@ -866,8 +866,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                             <div className="text-sm text-blue-800">
                               <p className="font-semibold mb-1">Cara Pembayaran:</p>
                               <ol className="list-decimal list-inside space-y-1">
-                                <li>Klik tombol "Bayar dengan XENDIT"</li>
-                                <li>Anda akan diarahkan ke halaman pembayaran Xendit</li>
+                                <li>Klik tombol "Bayar Sekarang"</li>
+                                <li>Anda akan diarahkan ke halaman pembayaran online</li>
                                 <li>Pilih metode pembayaran yang Anda inginkan</li>
                                 <li>Ikuti instruksi pembayaran</li>
                                 <li>Setelah berhasil, Anda akan otomatis kembali ke halaman konfirmasi</li>
@@ -913,7 +913,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                         {paymentMethod === "online_xendit" ? "Memproses..." : "Membuat Donasi..."}
                       </span>
                     ) : (
-                      paymentMethod === "online_xendit" ? "Bayar dengan XENDIT" : "Buat Donasi"
+                      paymentMethod === "online_xendit" ? "Bayar Sekarang" : "Buat Donasi"
                     )}
                   </Button>
                 </div>
@@ -1050,7 +1050,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
               </div>
             )}
 
-            {/* Step 3: XENDIT Payment */}
+            {/* Step 3: Online Payment */}
             {step === 3 && !flowCompleted && paymentMethod === "online_xendit" && (
               <div className="space-y-6">
                 <div>
@@ -1058,7 +1058,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     Selesaikan Pembayaran
                   </h2>
                   <p className="text-muted-foreground">
-                    Silakan lakukan pembayaran melalui halaman XENDIT di bawah ini
+                    Silakan lakukan pembayaran melalui halaman pembayaran di bawah ini
                   </p>
                 </div>
 
@@ -1097,12 +1097,12 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
 
                   {xenditInvoiceUrl && (
                     <div className="space-y-3">
-                      <Label>Halaman Pembayaran XENDIT</Label>
+                      <Label>Halaman Pembayaran Online</Label>
                       <div className="border-2 border-border rounded-lg overflow-hidden bg-white">
                         <iframe
                           src={xenditInvoiceUrl}
                           className="w-full h-[600px]"
-                          title="XENDIT Payment"
+                          title="Online Payment"
                           allow="payment"
                         />
                       </div>
@@ -1149,7 +1149,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     <div className="text-sm text-blue-800">
                       <p className="font-semibold mb-1">Catatan Penting:</p>
                       <ul className="list-disc list-inside space-y-1">
-                        <li>Selesaikan pembayaran di halaman XENDIT</li>
+                        <li>Selesaikan pembayaran di halaman pembayaran online</li>
                         <li>Jangan tutup halaman ini sampai pembayaran selesai</li>
                         <li>Status akan diperbarui otomatis setelah pembayaran berhasil</li>
                         <li>Jika ada masalah, hubungi customer service</li>
