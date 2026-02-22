@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp, Maximize2, X } from "lucide-react";
+import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp, Maximize2, X, PieChart, Wallet, TrendingDown } from "lucide-react";
 import DonationForm from "@/components/DonationForm";
-import { fetchCampaignById, UsageItem } from "@/lib/api";
+import { fetchCampaignById, UsageItem, StatisticsData } from "@/lib/api";
 
 type DetailCampaignUI = {
   id: string;
@@ -27,6 +27,7 @@ type DetailCampaignUI = {
     logo?: string;
   };
   usages?: UsageItem[];
+  statistics?: StatisticsData;
 };
 
 const CampaignDetail = () => {
@@ -73,6 +74,7 @@ const CampaignDetail = () => {
               }
             : undefined,
           usages: d.usages || [],
+          statistics: d.statistics,
         };
         setCampaign(mapped);
       } catch (e: unknown) {
@@ -281,59 +283,76 @@ const CampaignDetail = () => {
                     </Card>
                   )} */}
 
-                  {/* Usages Section */}
-                  {campaign.usages && campaign.usages.length > 0 && (
+                  {/* Statistics Section */}
+                  {campaign.statistics && (
                     <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
                       <div className="flex items-center gap-3 mb-4 md:mb-6">
-                        <h2 className="text-xl md:text-2xl font-bold text-foreground">Penggunaan Dana</h2>
+                        <PieChart className="h-6 w-6 text-primary" />
+                        <h2 className="text-xl md:text-2xl font-bold text-foreground">Statistik Pengelolaan Dana</h2>
                       </div>
                       
-                      <div className="space-y-3 md:space-y-4">
-                        {campaign.usages.map((usage) => (
-                          <div key={usage.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
-                            <div className="flex items-center gap-3 md:gap-4">
-                              {usage.icon_url && (
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden">
-                                  <img 
-                                    src={usage.icon_url.replace(/`/g, '')} 
-                                    alt={usage.usage_category_name}
-                                    className="w-6 h-6 md:w-8 md:h-8 object-contain"
-                                  />
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-semibold text-sm md:text-base text-gray-900">{usage.usage_category_name}</div>
-                                <div className="text-xs md:text-sm text-gray-600">
-                                  {new Date(usage.created_at).toLocaleDateString('id-ID', {
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                  })}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="font-bold text-sm md:text-lg text-primary">
-                                {formatRupiah(parseFloat(usage.amount.replace(/[.,]/g, '')) || 0)}
-                              </div>
-                            </div>
+                      {/* Financial Summary Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                            <span className="text-sm text-green-800 font-medium">Dana Terkumpul</span>
                           </div>
-                        ))}
-                      </div>
-                      
-                      <div className="mt-4 md:mt-6 pt-4 border-t border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs md:text-sm text-gray-600">Total Penggunaan Dana:</span>
-                          <span className="font-bold text-base md:text-lg text-primary">
-                            {formatRupiah(campaign.usages.reduce((total, usage) => {
-                              const amount = parseFloat(usage.amount.replace(/[.,]/g, ''));
-                              return total + (isNaN(amount) ? 0 : amount);
-                            }, 0))}
-                          </span>
+                          <div className="text-2xl font-bold text-green-900">
+                            {formatRupiah(campaign.collected)}
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingDown className="h-5 w-5 text-red-600" />
+                            <span className="text-sm text-red-800 font-medium">Total Pengeluaran</span>
+                          </div>
+                          <div className="text-2xl font-bold text-red-900">
+                            {formatRupiah(campaign.statistics.total_usage)}
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Wallet className="h-5 w-5 text-blue-600" />
+                            <span className="text-sm text-blue-800 font-medium">Sisa Dana</span>
+                          </div>
+                          <div className="text-2xl font-bold text-blue-900">
+                            {formatRupiah(campaign.statistics.remaining_fund)}
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Detail Usages */}
+                      {campaign.statistics.detail_usages && campaign.statistics.detail_usages.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground mb-4">Rincian Pengeluaran</h3>
+                          <div className="space-y-3">
+                            {campaign.statistics.detail_usages.map((usage) => (
+                              <div key={usage.id} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="flex-1">
+                                    <div className="font-semibold text-base text-gray-900 mb-1">{usage.category_name}</div>
+                                    {usage.description && (
+                                      <p className="text-sm text-gray-600">{usage.description}</p>
+                                    )}
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-bold text-lg text-primary">
+                                      {formatRupiah(parseFloat(usage.amount) || 0)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   )}
+
+                  
                 </div>
               </div>
             </div>

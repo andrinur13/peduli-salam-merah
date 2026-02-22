@@ -40,6 +40,20 @@ export type UsageItem = {
   icon_url?: string;
 };
 
+export type DetailUsageItem = {
+  id: string;
+  category_name: string;
+  amount: string;
+  description?: string;
+};
+
+export type StatisticsData = {
+  total_usage: number;
+  target_fund: number;
+  remaining_fund: number;
+  detail_usages: DetailUsageItem[];
+};
+
 export type CampaignDetailResponse = {
   meta: {
     code: number;
@@ -57,6 +71,7 @@ export type CampaignDetailResponse = {
       logo?: string;
     };
     usages?: UsageItem[];
+    statistics?: StatisticsData;
   };
 };
 
