@@ -17,7 +17,7 @@ import { ArrowLeft, Check, Upload, Copy, Loader2, Download } from "lucide-react"
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
 import Footer from "./Footer";
-import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, type BankItem, type DonationDetailResponse } from "@/lib/api";
+import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, fetchOnlinePaymentConfig, type BankItem, type DonationDetailResponse } from "@/lib/api";
 
 interface DonationFormProps {
   campaign: { id: string; title: string };
@@ -44,6 +44,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "online_xendit">("bank_transfer");
   const [xenditInvoiceUrl, setXenditInvoiceUrl] = useState<string | null>(null);
+  const [onlinePaymentStatus, setOnlinePaymentStatus] = useState<"ACTIVE" | "INACTIVE">("INACTIVE");
   const [isPollingStatus, setIsPollingStatus] = useState<boolean>(false);
   const [creatingDonation, setCreatingDonation] = useState<boolean>(false);
   const [donationCreatedMsg, setDonationCreatedMsg] = useState<string | null>(null);
@@ -98,6 +99,17 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       setDonationCreatedMsg(null);
       
       // Validate based on payment method
+      if (paymentMethod === "online_xendit" && onlinePaymentStatus !== "ACTIVE") {
+        toast({
+          title: "Pembayaran online tidak tersedia",
+          description: "Silakan pilih metode transfer bank",
+          variant: "destructive",
+        });
+        setPaymentMethod("bank_transfer");
+        setCreatingDonation(false);
+        return;
+      }
+
       if (paymentMethod === "bank_transfer" && !selectedBankId) {
         toast({
           title: "Pilih rekening terlebih dahulu",
@@ -400,6 +412,26 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     loadBanks();
   }, [campaign.id]);
 
+  useEffect(() => {
+    const loadOnlinePaymentConfig = async () => {
+      try {
+        const status = await fetchOnlinePaymentConfig();
+        setOnlinePaymentStatus(status);
+      } catch (err) {
+        // Fallback to INACTIVE if config fails, to avoid showing unavailable method.
+        setOnlinePaymentStatus("INACTIVE");
+      }
+    };
+
+    loadOnlinePaymentConfig();
+  }, []);
+
+  useEffect(() => {
+    if (onlinePaymentStatus !== "ACTIVE" && paymentMethod === "online_xendit") {
+      setPaymentMethod("bank_transfer");
+    }
+  }, [onlinePaymentStatus, paymentMethod]);
+
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -583,7 +615,11 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                 {/* Payment Method Selection */}
                 <div className="space-y-3">
                   <Label>Metode Pembayaran</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    className={`grid grid-cols-1 gap-3 ${
+                      onlinePaymentStatus === "ACTIVE" ? "sm:grid-cols-2" : "sm:grid-cols-1"
+                    }`}
+                  >
                     <div
                       role="button"
                       tabIndex={0}
@@ -615,36 +651,38 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       )}
                     </div>
 
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setPaymentMethod("online_xendit")}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") setPaymentMethod("online_xendit");
-                      }}
-                      className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                        paymentMethod === "online_xendit"
-                          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                          : "border-border hover:border-primary/50 bg-white"
-                      }`}
-                    >
-                      <div className="flex flex-col items-center text-center gap-2">
-                        <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
+                    {onlinePaymentStatus === "ACTIVE" && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setPaymentMethod("online_xendit")}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") setPaymentMethod("online_xendit");
+                        }}
+                        className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                          paymentMethod === "online_xendit"
+                            ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                            : "border-border hover:border-primary/50 bg-white"
+                        }`}
+                      >
+                        <div className="flex flex-col items-center text-center gap-2">
+                          <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <div className="font-semibold">Pembayaran Online</div>
+                            <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan berbagai metode</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-semibold">Pembayaran Online</div>
-                          <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan berbagai metode</div>
-                        </div>
+                        {paymentMethod === "online_xendit" && (
+                          <div className="absolute top-2 right-2 text-primary">
+                            <Check className="h-5 w-5" />
+                          </div>
+                        )}
                       </div>
-                      {paymentMethod === "online_xendit" && (
-                        <div className="absolute top-2 right-2 text-primary">
-                          <Check className="h-5 w-5" />
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
 

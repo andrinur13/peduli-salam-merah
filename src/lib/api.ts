@@ -125,6 +125,18 @@ export type CreateDonationResponse = {
   };
 };
 
+export type OnlinePaymentConfigResponse = {
+  meta: {
+    code: number;
+    status: string;
+    message: string;
+    description: string;
+  };
+  data: {
+    online_payment: "ACTIVE" | "INACTIVE";
+  };
+};
+
 // Donation Detail API
 export type DonationDetailResponse = {
   meta: {
@@ -334,6 +346,30 @@ export const createDonation = async (
   }
   const json = (await res.json()) as CreateDonationResponse;
   return json.data;
+};
+
+export const fetchOnlinePaymentConfig = async (): Promise<"ACTIVE" | "INACTIVE"> => {
+  const host = import.meta.env.VITE_API_HOST as string | undefined;
+  const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
+
+  if (!host) throw new Error("VITE_API_HOST is not set in .env");
+  if (!apiKey) throw new Error("VITE_API_KEY is not set in .env");
+
+  const url = `${host}/api/config/online-payment`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to fetch online payment config: ${res.status} ${text}`);
+  }
+
+  const json = (await res.json()) as OnlinePaymentConfigResponse;
+  return json?.data?.online_payment === "ACTIVE" ? "ACTIVE" : "INACTIVE";
 };
 
 export const confirmDonationReceipt = async (
