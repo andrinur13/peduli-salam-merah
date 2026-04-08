@@ -39,13 +39,12 @@ const CampaignDetail = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
-  // Constants for description truncation
-  const DESCRIPTION_PREVIEW_LENGTH = 300;
-
-  // Helper function to truncate description
-  const getTruncatedDescription = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + '...';
+  const getDescriptionTextLength = (html: string) => {
+    return html
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim().length;
   };
 
   useEffect(() => {
@@ -91,6 +90,18 @@ const CampaignDetail = () => {
     if (!campaign || campaign.target === 0) return 0;
     return (campaign.collected / campaign.target) * 100;
   }, [campaign]);
+
+  const normalizedDescriptionHtml = useMemo(() => {
+    if (!campaign?.fullDescription) return "";
+    return campaign.fullDescription
+      .replace(/&nbsp;/gi, " ")
+      .replace(/\u00A0/g, " ");
+  }, [campaign?.fullDescription]);
+
+  const shouldShowDescriptionToggle = useMemo(() => {
+    if (!normalizedDescriptionHtml) return false;
+    return getDescriptionTextLength(normalizedDescriptionHtml) > 300;
+  }, [normalizedDescriptionHtml]);
   
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -234,15 +245,19 @@ const CampaignDetail = () => {
                       </Button>
                     </div>
 
-                    <div className="prose max-w-none">
-                      <p className="text-muted-foreground whitespace-pre-line">
-                        {showFullDescription 
-                          ? campaign.fullDescription 
-                          : getTruncatedDescription(campaign.fullDescription, DESCRIPTION_PREVIEW_LENGTH)
-                        }
-                      </p>
-                      
-                      {campaign.fullDescription.length > DESCRIPTION_PREVIEW_LENGTH && (
+                    <div className="relative">
+                      <div
+                        className={`prose max-w-none text-muted-foreground transition-all duration-200 [&_*]:break-words [&_a]:break-all [&_img]:max-w-full [&_img]:h-auto ${
+                          showFullDescription ? "" : "max-h-44 overflow-hidden"
+                        }`}
+                        dangerouslySetInnerHTML={{ __html: normalizedDescriptionHtml }}
+                      />
+
+                      {!showFullDescription && shouldShowDescriptionToggle && (
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white to-transparent" />
+                      )}
+
+                      {shouldShowDescriptionToggle && (
                         <div className="mt-4 flex justify-center">
                           <Button
                             variant="ghost"

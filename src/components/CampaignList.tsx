@@ -12,6 +12,17 @@ type UICampaign = {
   daysLeft: number;
 };
 
+const toPlainDescription = (value?: string) => {
+  if (!value) return "";
+
+  const withoutTags = value.replace(/<[^>]*>/g, " ");
+  return withoutTags
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00A0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 const CampaignList = () => {
   const [campaigns, setCampaigns] = useState<UICampaign[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -80,7 +91,7 @@ const CampaignList = () => {
           id: c.id,
           title: c.name,
           image: c.hero_img || "/placeholder.svg",
-          description: c.description || "",
+          description: toPlainDescription(c.description),
           target: c.total_fund || 0,
           collected: c.current_fund || 0,
           daysLeft: typeof c.count_day_string === "number" ? c.count_day_string : 0,
