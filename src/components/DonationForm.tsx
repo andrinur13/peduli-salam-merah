@@ -733,7 +733,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                                       <img
                                         src={logo}
                                         alt={b.bank_name}
-                                        className={`${(/qris/i.test(b.bank_name) || /qris/i.test(b.name)) ? "h-16 w-16" : "h-10 w-10"} object-contain`}
+                                        className={`${b.type?.toUpperCase() === 'QRIS' || /qris/i.test(b.bank_name) || /qris/i.test(b.name) ? "h-16 w-16" : "h-10 w-10"} object-contain`}
                                       />
                                     ) : (
                                       <div className="h-10 w-10 rounded bg-muted" />
@@ -757,7 +757,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                             <div className="bg-white p-4 rounded-lg">
                               <div className="flex items-center justify-between mb-2">
                                 <span className="font-semibold">{selectedBank.bank_name}</span>
-                                {(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) ? (
+                                {selectedBank.type?.toUpperCase() === 'QRIS' || /qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name) ? (
                                   <div className="flex gap-2">
                                     <Button
                                       variant="ghost"
@@ -779,7 +779,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                                   </Button>
                                 )}
                               </div>
-                              {(/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name)) ? (
+                              {selectedBank.type?.toUpperCase() === 'QRIS' || /qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name) ? (
                                 <div className="flex items-center justify-center p-2">
                                   <img
                                     src={selectedBank.icon_url || selectedBank.logo}
@@ -813,8 +813,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     </div>
 
                     <div className="bg-muted/50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">{selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? "Cara Bayar QRIS:" : "Cara Transfer:"}</h3>
-                  {selectedBank && ((/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? (
+                  <h3 className="font-semibold mb-2">{selectedBank?.type?.toUpperCase() === 'QRIS' || (selectedBank && (/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? "Cara Bayar QRIS:" : "Cara Transfer:"}</h3>
+                  {selectedBank?.type?.toUpperCase() === 'QRIS' || (selectedBank && (/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? (
                     <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                       <li>Buka aplikasi pembayaran yang mendukung QRIS</li>
                       <li>Pilih menu scan QR</li>

@@ -25,6 +25,7 @@ type DetailCampaignUI = {
     bank_name: string;
     account_number: string;
     logo?: string;
+    type?: string;
   };
   usages?: UsageItem[];
   statistics?: StatisticsData;
@@ -70,6 +71,7 @@ const CampaignDetail = () => {
                 bank_name: d.bank.bank_name,
                 account_number: d.bank.account_number,
                 logo: d.bank.logo,
+                type: d.bank.type,
               }
             : undefined,
           usages: d.usages || [],
@@ -282,21 +284,35 @@ const CampaignDetail = () => {
                     </div>
                   </Card>
 
-                  {/* {campaign.bank && (
+                  {campaign.bank && (
                     <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6">
                       <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4">Informasi Rekening</h2>
-                      <div className="flex items-center gap-3 md:gap-4">
-                        {campaign.bank.logo && (
-                          <img src={campaign.bank.logo} alt={campaign.bank.bank_name} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+                      <div className="flex flex-col gap-4">
+                        {campaign.bank.type?.toUpperCase() === 'QRIS' || /qris/i.test(campaign.bank.bank_name) ? (
+                          <div className="flex flex-col items-center gap-3">
+                            {campaign.bank.logo && (
+                              <img src={campaign.bank.logo} alt="QRIS" className="w-48 h-48 md:w-64 md:h-64 object-contain rounded-md border p-2" />
+                            )}
+                            <div className="text-center">
+                              <div className="font-semibold text-sm md:text-base">{campaign.bank.bank_name}</div>
+                              <div className="text-xs md:text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 md:gap-4">
+                            {campaign.bank.logo && (
+                              <img src={campaign.bank.logo} alt={campaign.bank.bank_name} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+                            )}
+                            <div>
+                              <div className="font-semibold text-sm md:text-base">{campaign.bank.bank_name}</div>
+                              <div className="text-xs md:text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
+                              <div className="text-xs md:text-sm">No. Rekening: {campaign.bank.account_number}</div>
+                            </div>
+                          </div>
                         )}
-                        <div>
-                          <div className="font-semibold text-sm md:text-base">{campaign.bank.bank_name}</div>
-                          <div className="text-xs md:text-sm text-muted-foreground">Atas Nama: {campaign.bank.name}</div>
-                          <div className="text-xs md:text-sm">No. Rekening: {campaign.bank.account_number}</div>
-                        </div>
                       </div>
                     </Card>
-                  )} */}
+                  )}
 
                   {/* Statistics Section */}
                   {campaign.statistics && (

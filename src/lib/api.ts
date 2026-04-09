@@ -69,6 +69,7 @@ export type CampaignDetailResponse = {
       bank_name: string;
       account_number: string;
       logo?: string;
+      type?: string;
     };
     usages?: UsageItem[];
     statistics?: StatisticsData;
@@ -83,6 +84,7 @@ export type BankItem = {
   bank_name: string;
   account_number: string;
   icon_url?: string; // fully qualified URL from API, may contain backticks
+  type?: string;
 };
 
 export type BankListResponse = {
