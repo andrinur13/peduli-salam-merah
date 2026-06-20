@@ -2,7 +2,7 @@ import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
 import CampaignList from "@/components/CampaignList";
-import RamadhanCountdown from "@/components/RamadhanCountdown";
+import VirtuesOfCharity from "@/components/VirtuesOfCharity";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -27,7 +27,7 @@ const Index = () => {
         </div>
       </section>
       
-      <RamadhanCountdown />
+      <VirtuesOfCharity />
       <Footer />
     </div>
   );

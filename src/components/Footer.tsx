@@ -9,7 +9,7 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <span className="text-xl font-bold text-foreground">Ramadhan Project 1447 H</span>
+              <span className="text-xl font-bold text-foreground">SM Peduli</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Platform donasi terpercaya untuk menyalurkan kebaikan kepada sesama yang membutuhkan.
@@ -18,9 +18,9 @@ const Footer = () => {
 
           {/* Logo SM Ramadhan */}
           <div className="flex justify-center md:justify-start">
-            <img 
-              src="/sm_ramadhan.png" 
-              alt="SM Ramadhan" 
+            <img
+              src="/sm_ramadhan.png"
+              alt="SM Ramadhan"
               className="h-24 w-auto object-contain"
             />
           </div>
@@ -51,35 +51,35 @@ const Footer = () => {
           </div>
 
           {/* Social Media */}
-            <div>
+          <div>
             <h3 className="font-semibold text-foreground mb-4">Ikuti Kami</h3>
             <div className="flex gap-3">
               <a
-              href="https://facebook.com/surabayamengaji"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+                href="https://facebook.com/surabayamengaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-              <Facebook className="h-5 w-5" />
+                <Facebook className="h-5 w-5" />
               </a>
               <a
-              href="https://instagram.com/surabayamengaji"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+                href="https://instagram.com/surabayamengaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-              <Instagram className="h-5 w-5" />
+                <Instagram className="h-5 w-5" />
               </a>
               <a
-              href="https://youtube.com/surabayamengaji"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
+                href="https://youtube.com/surabayamengaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted hover:bg-primary hover:text-white transition-all duration-300"
               >
-              <Youtube className="h-5 w-5" />
+                <Youtube className="h-5 w-5" />
               </a>
             </div>
-            </div>
+          </div>
         </div>
 
         {/* Copyright */}

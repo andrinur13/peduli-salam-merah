@@ -49,6 +49,7 @@ const CampaignDetail = () => {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     const load = async () => {
       if (!id) return;
       setLoading(true);

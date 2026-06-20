@@ -13,7 +13,7 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <span className="text-xl font-bold text-foreground">
-              Ramadhan Project 1447 H
+              SM Peduli
             </span>
           </Link>
 
@@ -22,15 +22,15 @@ const Header = () => {
             <Link to="/" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Beranda
             </Link>
-            <Link to="/#campaigns" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            <a href="/#campaigns" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Campaign
-            </Link>
-            <Link to="/#tentang" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            </a>
+            <a href="/#tentang" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Tentang Kami
-            </Link>
-            <Link to="/#kontak" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
+            </a>
+            <a href="/#kontak" className="text-sm font-medium text-foreground hover:text-primary transition-colors">
               Kontak
-            </Link>
+            </a>
           </nav>
 
           {/* Desktop CTA */}
@@ -59,27 +59,27 @@ const Header = () => {
             >
               Beranda
             </Link>
-            <Link
-              to="/#campaigns"
+            <a
+              href="/#campaigns"
               className="block text-sm font-medium text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Campaign
-            </Link>
-            <Link
-              to="/#tentang"
+            </a>
+            <a
+              href="/#tentang"
               className="block text-sm font-medium text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Tentang Kami
-            </Link>
-            <Link
-              to="/#kontak"
+            </a>
+            <a
+              href="/#kontak"
               className="block text-sm font-medium text-foreground hover:text-primary transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
               Kontak
-            </Link>
+            </a>
             <Button className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-medium">
               Donasi Sekarang
             </Button>

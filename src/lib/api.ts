@@ -284,7 +284,7 @@ export const fetchCampaignById = async (id: string): Promise<CampaignDetailRespo
     raiser: d.raiser
       ? { ...d.raiser, profile_img: stripTicksAndQuotes(d.raiser.profile_img) }
       : undefined,
-    bank: d.bank
+    bank: d.bank && !Array.isArray(d.bank)
       ? { ...d.bank, logo: stripTicksAndQuotes(d.bank.logo) }
       : undefined,
   };
