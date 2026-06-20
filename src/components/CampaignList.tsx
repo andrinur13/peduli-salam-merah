@@ -88,7 +88,7 @@ const CampaignList = () => {
           selectedSubCategoryId || undefined
         );
         const mapped: UICampaign[] = data.map((c) => ({
-          id: c.id,
+          id: c.slug || c.id,
           title: c.name,
           image: c.hero_img || "/placeholder.svg",
           description: toPlainDescription(c.description),

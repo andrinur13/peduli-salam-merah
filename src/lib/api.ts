@@ -7,6 +7,7 @@ type CampaignApiRaiser = {
 
 export type CampaignApiItem = {
   id: string;
+  slug?: string;
   name: string;
   total_fund: number;
   current_fund: number;

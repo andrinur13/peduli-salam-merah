@@ -15,7 +15,7 @@ interface CampaignCardProps {
 
 const CampaignCard = ({ id, title, image, description, target, collected, daysLeft }: CampaignCardProps) => {
   const progress = (collected / target) * 100;
-  
+
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
