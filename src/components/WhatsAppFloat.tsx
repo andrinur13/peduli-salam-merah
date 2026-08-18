@@ -3,14 +3,19 @@ import { Button } from "@/components/ui/button";
 interface WhatsAppFloatProps {
   phoneNumber?: string;
   message?: string;
+  programName?: string;
 }
 
 const WhatsAppFloat = ({ 
-  phoneNumber = "6281335322441", // Ganti dengan nomor WhatsApp yang sesuai
-  message = "assalamu'alaikum warahmatullahi wabarakatuh" 
+  phoneNumber = "6281235707515", // Ganti dengan nomor WhatsApp yang sesuai
+  message,
+  programName
 }: WhatsAppFloatProps) => {
+  const defaultMessage = "assalamu'alaikum warahmatullahi wabarakatuh,\nbantu saya untuk mendapatkan informasi lebih lanjut untuk program tersebut..";
+  const finalMessage = message || (programName ? defaultMessage.replace("program tersebut", `program *${programName}*`) : defaultMessage);
+
   const handleWhatsAppClick = () => {
-    const encodedMessage = encodeURIComponent(message);
+    const encodedMessage = encodeURIComponent(finalMessage);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
     window.open(whatsappUrl, "_blank");
   };

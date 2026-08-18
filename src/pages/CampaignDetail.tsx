@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Share2, Heart, Calendar, TrendingUp, Users, ArrowLeft, Receipt, ChevronDown, ChevronUp, Maximize2, X, PieChart, Wallet, TrendingDown } from "lucide-react";
 import DonationForm from "@/components/DonationForm";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 import { fetchCampaignById, UsageItem, StatisticsData } from "@/lib/api";
 
 type DetailCampaignUI = {
@@ -393,6 +394,7 @@ const CampaignDetail = () => {
       </main>
 
       <Footer />
+      <WhatsAppFloat programName={campaign?.title} />
     </div>
   );
 };

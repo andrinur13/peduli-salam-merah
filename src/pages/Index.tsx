@@ -4,6 +4,7 @@ import Features from "@/components/Features";
 import CampaignList from "@/components/CampaignList";
 import VirtuesOfCharity from "@/components/VirtuesOfCharity";
 import Footer from "@/components/Footer";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 
 const Index = () => {
   return (
@@ -29,6 +30,7 @@ const Index = () => {
       
       <VirtuesOfCharity />
       <Footer />
+      <WhatsAppFloat />
     </div>
   );
 };
