@@ -19,8 +19,8 @@ const Footer = () => {
           {/* Logo SM Ramadhan */}
           <div className="flex justify-center md:justify-start">
             <img
-              src="/sm_ramadhan.png"
-              alt="SM Ramadhan"
+              src="/NEW WTP 2025.png"
+              alt="WTP Logo"
               className="h-24 w-auto object-contain"
             />
           </div>
