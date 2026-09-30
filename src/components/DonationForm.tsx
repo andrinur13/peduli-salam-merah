@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [banksLoading, setBanksLoading] = useState<boolean>(false);
   const [banksError, setBanksError] = useState<string | null>(null);
   const [selectedBankId, setSelectedBankId] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "online_xendit">("bank_transfer");
+  const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "online_xendit">("online_xendit");
+  const [qrString, setQrString] = useState<string | null>(null);
   const [xenditInvoiceUrl, setXenditInvoiceUrl] = useState<string | null>(null);
   const [onlinePaymentStatus, setOnlinePaymentStatus] = useState<"ACTIVE" | "INACTIVE">("INACTIVE");
   const [isPollingStatus, setIsPollingStatus] = useState<boolean>(false);
@@ -97,6 +99,9 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     try {
       setCreatingDonation(true);
       setDonationCreatedMsg(null);
+      setQrString(null);
+      setDonationDetail(null);
+      setXenditInvoiceUrl(null);
       
       // Validate based on payment method
       if (paymentMethod === "online_xendit" && onlinePaymentStatus !== "ACTIVE") {
@@ -148,6 +153,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         const donationIdFromResponse = res.donation_id || res.transaction_id || "";
         setDonationId(donationIdFromResponse);
         
+        setQrString(res.qr_string ?? null);
+
         // Store invoice URL
         if (res.invoice_url) {
           setXenditInvoiceUrl(res.invoice_url);
@@ -426,11 +433,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
     loadOnlinePaymentConfig();
   }, []);
 
-  useEffect(() => {
-    if (onlinePaymentStatus !== "ACTIVE" && paymentMethod === "online_xendit") {
-      setPaymentMethod("bank_transfer");
-    }
-  }, [onlinePaymentStatus, paymentMethod]);
+
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -443,6 +446,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       }
     };
   }, []);
+
+  const paymentQrString = donationDetail?.qr_string || qrString;
 
   const selectedBank = useMemo(() => banks.find(b => b.id === selectedBankId), [banks, selectedBankId]);
 
@@ -616,43 +621,10 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                 <div className="space-y-3">
                   <Label>Metode Pembayaran</Label>
                   <div
-                    className={`grid grid-cols-1 gap-3 ${
-                      onlinePaymentStatus === "ACTIVE" ? "sm:grid-cols-2" : "sm:grid-cols-1"
-                    }`}
+                    className="grid grid-cols-1 gap-3"
                   >
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setPaymentMethod("bank_transfer")}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") setPaymentMethod("bank_transfer");
-                      }}
-                      className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                        paymentMethod === "bank_transfer"
-                          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                          : "border-border hover:border-primary/50 bg-white"
-                      }`}
-                    >
-                      <div className="flex flex-col items-center text-center gap-2">
-                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                          <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <div className="font-semibold">Transfer Bank</div>
-                          <div className="text-xs text-muted-foreground mt-1">Transfer manual ke rekening</div>
-                        </div>
-                      </div>
-                      {paymentMethod === "bank_transfer" && (
-                        <div className="absolute top-2 right-2 text-primary">
-                          <Check className="h-5 w-5" />
-                        </div>
-                      )}
-                    </div>
 
-                    {onlinePaymentStatus === "ACTIVE" && (
-                      <div
+                    <div
                         role="button"
                         tabIndex={0}
                         onClick={() => setPaymentMethod("online_xendit")}
@@ -682,248 +654,10 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                           </div>
                         )}
                       </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Bank Transfer Section */}
-                {paymentMethod === "bank_transfer" && (
-                  <>
-                    <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
-                      <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
-                      <div className="text-3xl font-bold text-primary mb-2">
-                        {formatRupiah(donationDetail?.amount ?? formData.amount)}
-                      </div>
-                      {donationDetail?.transaction_number && (
-                        <div className="text-xs text-muted-foreground">
-                          No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-4 pt-4 border-t border-primary/20">
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-2">Rekening Tujuan</div>
-                      {banksLoading && (
-                        <div className="text-sm text-muted-foreground">Memuat rekening...</div>
-                      )}
-                      {banksError && (
-                        <div className="text-sm text-red-600">{banksError}</div>
-                      )}
-                      {!banksLoading && !banksError && (
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {banks.map((b) => {
-                              const isSelected = selectedBankId === b.id;
-                              const logo = b.icon_url || b.logo;
-                              return (
-                                <div
-                                  key={b.id}
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => setSelectedBankId(b.id)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") setSelectedBankId(b.id);
-                                  }}
-                                  className={`relative p-4 rounded-lg border transition-all duration-200 cursor-pointer bg-white ${
-                                    isSelected ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {logo ? (
-                                      <img
-                                        src={logo}
-                                        alt={b.bank_name}
-                                        className={`${b.type?.toUpperCase() === 'QRIS' || /qris/i.test(b.bank_name) || /qris/i.test(b.name) ? "h-16 w-16" : "h-10 w-10"} object-contain`}
-                                      />
-                                    ) : (
-                                      <div className="h-10 w-10 rounded bg-muted" />
-                                    )}
-                                    <div className="min-w-0">
-                                      <div className="font-semibold truncate">{b.bank_name}</div>
-                                      <div className="text-xs text-muted-foreground truncate">a.n. {b.name}</div>
-                                    </div>
-                                  </div>
-                                  {isSelected && (
-                                    <div className="absolute top-2 right-2 text-primary">
-                                      <Check className="h-5 w-5" />
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          {selectedBank && (
-                            <div className="bg-white p-4 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-semibold">{selectedBank.bank_name}</span>
-                                {selectedBank.type?.toUpperCase() === 'QRIS' || /qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name) ? (
-                                  <div className="flex gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => downloadQRIS(selectedBank.icon_url || selectedBank.logo, selectedBank.bank_name)}
-                                    >
-                                      <Download className="h-4 w-4 mr-1" />
-                                      Unduh QR
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedBank.account_number)}
-                                  >
-                                    <Copy className="h-4 w-4 mr-1" />
-                                    Salin
-                                  </Button>
-                                )}
-                              </div>
-                              {selectedBank.type?.toUpperCase() === 'QRIS' || /qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name) ? (
-                                <div className="flex items-center justify-center p-2">
-                                  <img
-                                    src={selectedBank.icon_url || selectedBank.logo}
-                                    alt="QRIS"
-                                    className="max-h-80 w-auto object-contain rounded-md border"
-                                  />
-                                </div>
-                              ) : (
-                                <>
-                                  <div className="text-2xl font-bold text-foreground">{selectedBank.account_number}</div>
-                                  <div className="text-sm text-muted-foreground mt-1">a.n. {selectedBank.name}</div>
-                                </>
-                              )}
-                            </div>
-                          )}
-                          {donationDetail && (
-                            <div className="bg-white p-4 rounded-lg border border-muted">
-                              <div className="font-semibold mb-2">Ringkasan Pembayaran</div>
-                              <div className="text-sm text-muted-foreground space-y-1">
-                                <div>Metode: {donationDetail.payment_method}</div>
-                                <div>Bank: {donationDetail.bank_name}</div>
-                                <div>No. Rekening: {donationDetail.bank_account}</div>
-                                <div>a.n. {donationDetail.bank_account_name}</div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted/50 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-2">{selectedBank?.type?.toUpperCase() === 'QRIS' || (selectedBank && (/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? "Cara Bayar QRIS:" : "Cara Transfer:"}</h3>
-                  {selectedBank?.type?.toUpperCase() === 'QRIS' || (selectedBank && (/qris/i.test(selectedBank.bank_name) || /qris/i.test(selectedBank.name))) ? (
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                      <li>Buka aplikasi pembayaran yang mendukung QRIS</li>
-                      <li>Pilih menu scan QR</li>
-                      <li>Scan gambar QR di atas</li>
-                      <li>Pastikan nominal sesuai yang tertera</li>
-                      <li>Konfirmasi pembayaran</li>
-                      <li>Simpan bukti pembayaran untuk konfirmasi</li>
-                    </ol>
-                  ) : (
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                      <li>Buka aplikasi mobile banking Anda</li>
-                      <li>Pilih menu transfer ke bank tujuan</li>
-                      <li>Masukkan nomor rekening</li>
-                      <li>Input nominal sesuai yang tertera</li>
-                      <li>Konfirmasi dan selesaikan transaksi</li>
-                      <li>Simpan bukti transfer untuk konfirmasi</li>
-                    </ol>
-                  )}
-                    </div>
-                  </>
-                )}
-
-                {/* Online XENDIT Section */}
-                {paymentMethod === "online_xendit" && (
-                  <div className="space-y-6">
-                    <div className="p-6 bg-primary/10 rounded-lg border-2 border-primary">
-                      <div className="text-sm text-muted-foreground mb-1">Jumlah yang harus dibayar</div>
-                      <div className="text-3xl font-bold text-primary mb-2">
-                        {formatRupiah(donationDetail?.amount ?? formData.amount)}
-                      </div>
-                      {donationDetail?.transaction_number && (
-                        <div className="text-xs text-muted-foreground">
-                          No. Transaksi: <span className="font-mono">{donationDetail.transaction_number}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg border-2 border-border">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center">
-                          <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z" />
-                          </svg>
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-lg">Online Payment Gateway</h3>
-                          <p className="text-sm text-muted-foreground">Aman, Cepat & Terpercaya</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="bg-muted/50 p-4 rounded-lg">
-                          <h4 className="font-semibold mb-3">Metode Pembayaran yang Tersedia:</h4>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>Virtual Account (BCA, BNI, BRI, Mandiri, dll)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>E-Wallet (OVO, DANA, LinkAja, ShopeePay)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>QRIS (Semua aplikasi e-wallet)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>Kartu Kredit/Debit</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>Alfamart & Indomaret</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-green-600" />
-                              <span>Direct Debit</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                          <div className="flex gap-3">
-                            <svg className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                            <div className="text-sm text-blue-800">
-                              <p className="font-semibold mb-1">Cara Pembayaran:</p>
-                              <ol className="list-decimal list-inside space-y-1">
-                                <li>Klik tombol "Bayar Sekarang"</li>
-                                <li>Anda akan diarahkan ke halaman pembayaran online</li>
-                                <li>Pilih metode pembayaran yang Anda inginkan</li>
-                                <li>Ikuti instruksi pembayaran</li>
-                                <li>Setelah berhasil, Anda akan otomatis kembali ke halaman konfirmasi</li>
-                              </ol>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                          </svg>
-                          <span>Transaksi Anda dijamin aman dan terenkripsi</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                
 
                 {donationCreatedMsg && paymentMethod === "bank_transfer" && (
                   <div className="p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
@@ -931,7 +665,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setStep(1)}
@@ -1061,7 +795,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setStep(2)}
@@ -1096,7 +830,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     Selesaikan Pembayaran
                   </h2>
                   <p className="text-muted-foreground">
-                    Silakan lakukan pembayaran melalui halaman pembayaran di bawah ini
+                    Silakan selesaikan pembayaran menggunakan QRIS atau halaman pembayaran di bawah ini
                   </p>
                 </div>
 
@@ -1133,7 +867,32 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     </div>
                   </div>
 
-                  {xenditInvoiceUrl && (
+                  {paymentQrString && (
+                    <div className="space-y-3 text-center">
+                      <p className="font-semibold">Scan QRIS untuk membayar</p>
+                      <div className="mx-auto w-fit max-w-full rounded-lg border bg-white p-4">
+                        <QRCodeSVG
+                          value={paymentQrString}
+                          size={256}
+                          marginSize={4}
+                          title="QRIS pembayaran donasi"
+                          className="max-w-full h-auto"
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Scan dengan aplikasi bank atau e-wallet yang mendukung QRIS.
+                        Status akan diperbarui otomatis setelah pembayaran berhasil.
+                      </p>
+                    </div>
+                  )}
+
+                  {!paymentQrString && !xenditInvoiceUrl && !donationDetail?.payment_url && (
+                    <p role="alert" className="text-sm text-destructive">
+                      Kode pembayaran belum tersedia. Silakan cek status pembayaran atau hubungi customer service.
+                    </p>
+                  )}
+
+                  {!paymentQrString && xenditInvoiceUrl && (
                     <div className="space-y-3">
                       <Label>Halaman Pembayaran Online</Label>
                       <div className="border-2 border-border rounded-lg overflow-hidden bg-white">
@@ -1155,7 +914,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     </div>
                   )}
 
-                  {!xenditInvoiceUrl && donationDetail?.payment_url && (
+                  {!paymentQrString && !xenditInvoiceUrl && donationDetail?.payment_url && (
                     <div className="space-y-3">
                       <Label>Link Pembayaran</Label>
                       <div className="p-4 bg-muted/50 rounded-lg">
@@ -1187,7 +946,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     <div className="text-sm text-blue-800">
                       <p className="font-semibold mb-1">Catatan Penting:</p>
                       <ul className="list-disc list-inside space-y-1">
-                        <li>Selesaikan pembayaran di halaman pembayaran online</li>
+                        <li>Selesaikan pembayaran menggunakan QRIS atau halaman pembayaran online</li>
                         <li>Jangan tutup halaman ini sampai pembayaran selesai</li>
                         <li>Status akan diperbarui otomatis setelah pembayaran berhasil</li>
                         <li>Jika ada masalah, hubungi customer service</li>
@@ -1196,7 +955,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
                     onClick={() => {
