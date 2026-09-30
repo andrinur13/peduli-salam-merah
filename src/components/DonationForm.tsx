@@ -44,6 +44,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const [banksError, setBanksError] = useState<string | null>(null);
   const [selectedBankId, setSelectedBankId] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"bank_transfer" | "online_xendit">("online_xendit");
+  const [paymentSummary, setPaymentSummary] = useState<{ amount?: number; donation_amount?: number; fee?: number } | null>(null);
   const [qrString, setQrString] = useState<string | null>(null);
   const [xenditInvoiceUrl, setXenditInvoiceUrl] = useState<string | null>(null);
   const [onlinePaymentStatus, setOnlinePaymentStatus] = useState<"ACTIVE" | "INACTIVE">("INACTIVE");
@@ -100,6 +101,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
       setCreatingDonation(true);
       setDonationCreatedMsg(null);
       setQrString(null);
+      setPaymentSummary(null);
       setDonationDetail(null);
       setXenditInvoiceUrl(null);
       
@@ -154,6 +156,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         setDonationId(donationIdFromResponse);
         
         setQrString(res.qr_string ?? null);
+        setPaymentSummary(res);
 
         // Store invoice URL
         if (res.invoice_url) {
@@ -617,6 +620,14 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </p>
                 </div>
 
+                {paymentMethod === "online_xendit" && (
+                  <div className="rounded-lg bg-muted/50 p-4 text-sm space-y-2">
+                    <div className="flex justify-between"><span>Donasi</span><span>{formatRupiah(formData.amount)}</span></div>
+                    <div className="flex justify-between"><span>Biaya admin QRIS (0,7%)</span><span>{formatRupiah(Math.ceil(formData.amount * 7 / 1000))}</span></div>
+                    <div className="flex justify-between font-semibold"><span>Total pembayaran</span><span>{formatRupiah(formData.amount + Math.ceil(formData.amount * 7 / 1000))}</span></div>
+                  </div>
+                )}
+
                 {/* Payment Method Selection */}
                 <div className="space-y-3">
                   <Label>Metode Pembayaran</Label>
@@ -847,8 +858,16 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                         <span className="text-sm font-medium">{formData.whatsapp}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Jumlah</span>
-                        <span className="text-sm font-bold text-primary">{formatRupiah(donationDetail?.amount ?? formData.amount)}</span>
+                        <span className="text-sm text-muted-foreground">Donasi</span>
+                        <span className="text-sm font-medium">{formatRupiah(donationDetail?.donation_amount ?? paymentSummary?.donation_amount ?? formData.amount)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Biaya admin QRIS</span>
+                        <span className="text-sm font-medium">{formatRupiah(donationDetail?.fee ?? paymentSummary?.fee ?? 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Total pembayaran</span>
+                        <span className="text-sm font-bold text-primary">{formatRupiah(donationDetail?.amount ?? paymentSummary?.amount ?? formData.amount)}</span>
                       </div>
                       {donationDetail?.transaction_number && (
                         <div className="flex justify-between">
@@ -1045,9 +1064,15 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                     </div>
                   </div>
 
-                  <h2 className="text-2xl font-bold">Terima kasih! Donasi Anda berhasil dikonfirmasi.</h2>
+                  <h2 className="text-2xl font-bold">
+                    {paymentMethod === "online_xendit"
+                      ? "Pembayaran berhasil! Terima kasih atas donasi Anda."
+                      : "Terima kasih! Donasi Anda berhasil dikonfirmasi."}
+                  </h2>
                   <p className="text-muted-foreground max-w-md">
-                    Kami telah menerima bukti transfer Anda. Tim kami akan segera memverifikasi dan mengupdate status donasi.
+                    {paymentMethod === "online_xendit"
+                      ? `Pembayaran donasi untuk ${campaign.title} telah terkonfirmasi. Semoga kebaikan Anda membawa manfaat bagi yang membutuhkan.`
+                      : "Kami telah menerima bukti transfer Anda. Tim kami akan segera memverifikasi dan mengupdate status donasi."}
                   </p>
 
                   {donationDetail?.transaction_number && (

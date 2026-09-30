@@ -123,6 +123,8 @@ export type CreateDonationResponse = {
     invoice_url?: string;
     invoice_id?: number;
     qr_string?: string | null;
+    donation_amount?: number;
+    fee?: number;
     amount?: number;
     status?: string;
     expiry_date?: string;
@@ -161,6 +163,8 @@ export type DonationDetailResponse = {
     status: string;
     payment_url?: string | null;
     qr_string?: string | null;
+    donation_amount?: number;
+    fee?: number;
     created_at: string;
   };
 };
