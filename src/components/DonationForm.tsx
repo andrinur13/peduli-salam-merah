@@ -14,18 +14,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Check, Upload, Copy, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Check, Upload, Copy, Loader2, Download, TrendingUp } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import Header from "./Header";
 import Footer from "./Footer";
-import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, fetchOnlinePaymentConfig, type BankItem, type DonationDetailResponse } from "@/lib/api";
+import { createDonation, fetchBanks, confirmDonationReceipt, fetchDonationDetail, fetchOnlinePaymentConfig, fetchCampaignById, type BankItem, type DonationDetailResponse } from "@/lib/api";
 
 interface DonationFormProps {
-  campaign: { id: string; title: string };
+  campaign: {
+    id: string;
+    title: string;
+    target?: number;
+    collected?: number;
+  };
   onBack: () => void;
+  onPaymentSuccess?: () => void;
 }
 
-const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
+const DonationForm = ({ campaign, onBack, onPaymentSuccess }: DonationFormProps) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
@@ -59,6 +66,41 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
   const { toast } = useToast();
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [latestCampaign, setLatestCampaign] = useState<{ target: number; collected: number } | null>(
+    campaign.target !== undefined && campaign.collected !== undefined
+      ? { target: campaign.target, collected: campaign.collected }
+      : null
+  );
+
+  useEffect(() => {
+    if (campaign.target !== undefined && campaign.collected !== undefined) {
+      setLatestCampaign({ target: campaign.target, collected: campaign.collected });
+    }
+  }, [campaign.target, campaign.collected]);
+
+  const handlePaymentCompleted = async (donationDetailData?: DonationDetailResponse["data"]) => {
+    setFlowCompleted(true);
+    setXenditInvoiceUrl(null);
+    onPaymentSuccess?.();
+
+    try {
+      const fresh = await fetchCampaignById(campaign.id);
+      if (fresh) {
+        setLatestCampaign({
+          target: fresh.total_fund || 0,
+          collected: fresh.current_fund || 0,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch fresh campaign data:", err);
+      const donAmount = donationDetailData?.amount ?? formData.amount;
+      setLatestCampaign((prev) => ({
+        target: prev?.target ?? (campaign.target || 0),
+        collected: (prev?.collected ?? (campaign.collected || 0)) + donAmount,
+      }));
+    }
+  };
 
   const formatRupiah = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -225,19 +267,15 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
         setConfirmingReceipt(false);
         return;
       }
-      if (!proofFile) {
-        toast({
-          title: "Bukti transfer belum diunggah",
-          description: "Mohon unggah bukti transfer Anda",
-          variant: "destructive",
-        });
-        setConfirmingReceipt(false);
-        return;
+      if (proofFile) {
+        await confirmDonationReceipt(donationId, proofFile);
+        toast({ title: "Bukti transfer berhasil dikirim!", description: "Terima kasih atas donasi Anda" });
+        setConfirmSuccess(`Donasi dan bukti transfer berhasil dikirim. ID: ${donationId}`);
+      } else {
+        toast({ title: "Konfirmasi donasi berhasil!", description: "Terima kasih atas donasi Anda" });
+        setConfirmSuccess(`Donasi berhasil dikonfirmasi. ID: ${donationId}`);
       }
-      await confirmDonationReceipt(donationId, proofFile);
-      toast({ title: "Konfirmasi donasi berhasil!", description: `` });
-      setConfirmSuccess(`Donasi berhasil dikonfirmasi. ID: ${donationId}`);
-      setFlowCompleted(true);
+      await handlePaymentCompleted(donationDetail || undefined);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Gagal mengonfirmasi donasi";
       toast({ title: "Terjadi kesalahan", description: message, variant: "destructive" });
@@ -282,8 +320,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
             pollingTimeoutRef.current = null;
           }
           setIsPollingStatus(false);
-          setFlowCompleted(true);
-          setXenditInvoiceUrl(null); // Hide iframe
+          await handlePaymentCompleted(detail);
           toast({ 
             title: "Pembayaran Berhasil!", 
             description: "Terima kasih atas donasi Anda" 
@@ -631,52 +668,41 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                 {/* Payment Method Selection */}
                 <div className="space-y-3">
                   <Label>Metode Pembayaran</Label>
-                  <div
-                    className="grid grid-cols-1 gap-3"
-                  >
-
+                  <div className="grid grid-cols-1 gap-3">
                     <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setPaymentMethod("online_xendit")}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") setPaymentMethod("online_xendit");
-                        }}
-                        className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                          paymentMethod === "online_xendit"
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                            : "border-border hover:border-primary/50 bg-white"
-                        }`}
-                      >
-                        <div className="flex flex-col items-center text-center gap-2">
-                          <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                            <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          </div>
-                          <div>
-                            <div className="font-semibold">Pembayaran Online</div>
-                            <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan berbagai metode</div>
-                          </div>
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setPaymentMethod("online_xendit")}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") setPaymentMethod("online_xendit");
+                      }}
+                      className={`relative p-5 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                        paymentMethod === "online_xendit"
+                          ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                          : "border-border hover:border-primary/50 bg-white"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center text-center gap-2">
+                        <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </div>
-                        {paymentMethod === "online_xendit" && (
-                          <div className="absolute top-2 right-2 text-primary">
-                            <Check className="h-5 w-5" />
-                          </div>
-                        )}
+                        <div>
+                          <div className="font-semibold">Pembayaran Online</div>
+                          <div className="text-xs text-muted-foreground mt-1">Bayar instan dengan QRIS</div>
+                        </div>
                       </div>
+                      {paymentMethod === "online_xendit" && (
+                        <div className="absolute top-2 right-2 text-primary">
+                          <Check className="h-5 w-5" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                
-
-                {donationCreatedMsg && paymentMethod === "bank_transfer" && (
-                  <div className="p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
-                    {donationCreatedMsg}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Button
                     variant="outline"
                     onClick={() => setStep(1)}
@@ -688,145 +714,15 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   <Button
                     className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
                     onClick={handleCreateDonation}
-                    disabled={creatingDonation || (paymentMethod === "bank_transfer" && !selectedBankId)}
+                    disabled={creatingDonation}
                   >
                     {creatingDonation ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        {paymentMethod === "online_xendit" ? "Memproses..." : "Membuat Donasi..."}
+                        Memproses...
                       </span>
                     ) : (
-                      paymentMethod === "online_xendit" ? "Bayar Sekarang" : "Buat Donasi"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Upload Proof or XENDIT Payment or Success Pane */}
-            {step === 3 && !flowCompleted && paymentMethod === "bank_transfer" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Konfirmasi Pembayaran
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Upload bukti transfer Anda
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <Label>Detail Donasi</Label>
-                    <div className="p-4 bg-muted/50 rounded-lg space-y-2 mt-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Nama</span>
-                        <span className="text-sm font-medium">{formData.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">WhatsApp</span>
-                        <span className="text-sm font-medium">{formData.whatsapp}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Jumlah</span>
-                        <span className="text-sm font-bold text-primary">{formatRupiah(donationDetail?.amount ?? formData.amount)}</span>
-                      </div>
-                      {donationDetail?.transaction_number && (
-                        <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">No. Transaksi</span>
-                          <span className="text-sm font-mono">{donationDetail.transaction_number}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>Bukti Transfer</Label>
-                    <div className="mt-2">
-                      {!proofImage ? (
-                        <label 
-                          className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
-                            isDragOver 
-                              ? 'border-primary bg-primary/5 border-solid' 
-                              : 'border-border hover:bg-muted/50'
-                          }`}
-                          onDragEnter={handleDragEnter}
-                          onDragLeave={handleDragLeave}
-                          onDragOver={handleDragOver}
-                          onDrop={handleDrop}
-                        >
-                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                            <Upload className={`h-10 w-10 mb-3 transition-colors ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                            <p className="mb-2 text-sm text-muted-foreground">
-                              <span className="font-semibold">
-                                {isDragOver ? 'Lepaskan file di sini' : 'Klik untuk upload atau seret file ke sini'}
-                              </span>
-                            </p>
-                            <p className="text-xs text-muted-foreground">PNG, JPG (MAX. 5MB)</p>
-                          </div>
-                          <input
-                            type="file"
-                            className="hidden"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handleFileSelect(file);
-                              }
-                            }}
-                          />
-                        </label>
-                      ) : (
-                        <div className="relative">
-                          <img
-                            src={proofImage}
-                            alt="Bukti Transfer"
-                            className="w-full h-64 object-cover rounded-lg"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="absolute top-2 right-2"
-                            onClick={() => {
-                              setProofImage(null);
-                              setProofFile(null);
-                            }}
-                          >
-                            Hapus
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {confirmSuccess && (
-                  <div className="p-4 rounded-lg border border-green-200 bg-green-50 text-green-800">
-                    {confirmSuccess}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                    className="w-full"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Kembali
-                  </Button>
-                  <Button
-                    className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300 font-semibold"
-                    onClick={handleConfirmReceipt}
-                    disabled={confirmingReceipt}
-                  >
-                    {confirmingReceipt ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Mengonfirmasi...
-                      </span>
-                    ) : (
-                      "Konfirmasi Donasi"
+                      "Bayar Sekarang"
                     )}
                   </Button>
                 </div>
@@ -834,7 +730,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
             )}
 
             {/* Step 3: Online Payment */}
-            {step === 3 && !flowCompleted && paymentMethod === "online_xendit" && (
+            {step === 3 && !flowCompleted && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground mb-2">
@@ -974,6 +870,88 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   </div>
                 </div>
 
+                {/* Optional Proof Upload for Online Payment */}
+                <div className="bg-white border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold text-sm">Upload Bukti Transfer / Pembayaran</Label>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-normal">Opsional</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Sudah melakukan pembayaran QRIS atau online? Anda juga dapat mengunggah bukti pembayaran di sini untuk verifikasi manual.
+                  </p>
+                  <div>
+                    {!proofImage ? (
+                      <label 
+                        className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
+                          isDragOver 
+                            ? 'border-primary bg-primary/5 border-solid' 
+                            : 'border-border hover:bg-muted/50'
+                        }`}
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                      >
+                        <div className="flex flex-col items-center justify-center py-3">
+                          <Upload className={`h-7 w-7 mb-2 transition-colors ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+                          <p className="text-xs text-muted-foreground font-medium">
+                            {isDragOver ? 'Lepaskan file di sini' : 'Klik atau seret foto bukti transfer ke sini'}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">PNG, JPG (Maks. 5MB) - Opsional</p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileSelect(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <img
+                            src={proofImage}
+                            alt="Bukti Transfer"
+                            className="w-full h-48 object-cover rounded-lg border"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={() => {
+                              setProofImage(null);
+                              setProofFile(null);
+                            }}
+                          >
+                            Hapus
+                          </Button>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="w-full font-semibold"
+                          onClick={handleConfirmReceipt}
+                          disabled={confirmingReceipt}
+                        >
+                          {confirmingReceipt ? (
+                            <span className="inline-flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" /> Mengunggah Bukti...
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-2">
+                              <Upload className="h-4 w-4" /> Kirim Bukti Pembayaran
+                            </span>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 gap-3">
                   <Button
                     variant="outline"
@@ -1003,8 +981,7 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                           const detail = await fetchDonationDetail(donationId);
                           setDonationDetail(detail);
                           if (detail.status === "PAID") {
-                            setFlowCompleted(true);
-                            setXenditInvoiceUrl(null);
+                            await handlePaymentCompleted(detail);
                             if (pollingIntervalRef.current) {
                               clearInterval(pollingIntervalRef.current);
                               pollingIntervalRef.current = null;
@@ -1072,7 +1049,9 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                   <p className="text-muted-foreground max-w-md">
                     {paymentMethod === "online_xendit"
                       ? `Pembayaran donasi untuk ${campaign.title} telah terkonfirmasi. Semoga kebaikan Anda membawa manfaat bagi yang membutuhkan.`
-                      : "Kami telah menerima bukti transfer Anda. Tim kami akan segera memverifikasi dan mengupdate status donasi."}
+                      : proofFile || proofImage
+                        ? "Kami telah menerima bukti transfer Anda. Tim kami akan segera memverifikasi dan mengupdate status donasi."
+                        : "Donasi Anda telah tercatat. Tim kami akan segera memverifikasi status donasi Anda."}
                   </p>
 
                   {donationDetail?.transaction_number && (
@@ -1086,6 +1065,29 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       >
                         <Copy className="h-4 w-4 mr-1" /> Salin
                       </Button>
+                    </div>
+                  )}
+
+                  {latestCampaign && latestCampaign.target > 0 && (
+                    <div className="w-full max-w-md bg-muted/40 rounded-xl p-4 border border-border/80 text-left space-y-2.5">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                          <TrendingUp className="h-4 w-4 text-primary" /> Progres Donasi Terkini
+                        </span>
+                        <span className="font-bold text-primary">
+                          {Math.min(100, (latestCampaign.collected / latestCampaign.target) * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={Math.min(100, (latestCampaign.collected / latestCampaign.target) * 100)} 
+                        className="h-2.5 bg-muted" 
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground">
+                          Terkumpul: {formatRupiah(latestCampaign.collected)}
+                        </span>
+                        <span>Target: {formatRupiah(latestCampaign.target)}</span>
+                      </div>
                     </div>
                   )}
 
@@ -1104,7 +1106,8 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                         variant="secondary"
                         size="lg"
                         onClick={() => {
-                          const text = encodeURIComponent(`assalamu'alaikum warahmatullahi wabarakatuh, info admin.. saya sudah berdonasi, tolong bantu verifikasi.. terima kasih\njazaakumullahu khairan 🍃`);
+                          const txn = donationDetail?.transaction_number ? ` (No. Transaksi: ${donationDetail.transaction_number})` : (donationId ? ` (ID: ${donationId})` : "");
+                          const text = encodeURIComponent(`assalamu'alaikum warahmatullahi wabarakatuh, info admin.. saya sudah berdonasi untuk "${campaign.title}"${txn}, tolong bantu verifikasi.. terima kasih\njazaakumullahu khairan 🍃`);
                           window.open(`https://wa.me/6281235707515?text=${text}`, "_blank");
                         }}
                       >
@@ -1115,20 +1118,18 @@ const DonationForm = ({ campaign, onBack }: DonationFormProps) => {
                       </Button>
                     </div>
                     
-                    {/* Secondary Action - Only for Bank Transfer */}
-                    {paymentMethod === "bank_transfer" && (
-                      <Button
-                        className="w-full max-w-md"
-                        variant="outline"
-                        onClick={() => {
-                          setFlowCompleted(false);
-                          setConfirmSuccess(null);
-                        }}
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Ulang Bukti Transfer
-                      </Button>
-                    )}
+                    {/* Secondary Action - Upload Bukti Transfer */}
+                    <Button
+                      className="w-full max-w-md"
+                      variant="outline"
+                      onClick={() => {
+                        setFlowCompleted(false);
+                        setConfirmSuccess(null);
+                      }}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {proofFile || proofImage ? "Upload Ulang Bukti Transfer" : "Upload Bukti Transfer"}
+                    </Button>
                   </div>
                 </div>
               </div>

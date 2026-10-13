@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -49,33 +49,31 @@ const CampaignDetail = () => {
       .trim().length;
   };
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    const load = async () => {
-      if (!id) return;
-      setLoading(true);
-      setError(null);
-      try {
-        const d = await fetchCampaignById(id);
-        const mapped: DetailCampaignUI = {
-          id: d.id,
-          title: d.name,
-          image: d.hero_img || "/placeholder.svg",
-          description: d.description || "",
-          fullDescription: d.description || "",
-          target: d.total_fund || 0,
-          collected: d.current_fund || 0,
-          daysLeft: typeof d.count_day_string === "number" ? d.count_day_string : 0,
-          donorCount: typeof d.funder_count === "number" ? d.funder_count : 0,
-          bank: d.bank
-            ? {
-                name: d.bank.name,
-                bank_name: d.bank.bank_name,
-                account_number: d.bank.account_number,
-                logo: d.bank.logo,
-                type: d.bank.type,
-              }
-            : undefined,
+  const loadCampaign = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const d = await fetchCampaignById(id);
+      const mapped: DetailCampaignUI = {
+        id: d.id,
+        title: d.name,
+        image: d.hero_img || "/placeholder.svg",
+        description: d.description || "",
+        fullDescription: d.description || "",
+        target: d.total_fund || 0,
+        collected: d.current_fund || 0,
+        daysLeft: typeof d.count_day_string === "number" ? d.count_day_string : 0,
+        donorCount: typeof d.funder_count === "number" ? d.funder_count : 0,
+        bank: d.bank
+          ? {
+              name: d.bank.name,
+              bank_name: d.bank.bank_name,
+              account_number: d.bank.account_number,
+              logo: d.bank.logo,
+              type: d.bank.type,
+            }
+          : undefined,
           usages: d.usages || [],
           statistics: d.statistics,
         };
@@ -86,9 +84,12 @@ const CampaignDetail = () => {
       } finally {
         setLoading(false);
       }
-    };
-    load();
   }, [id]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    loadCampaign();
+  }, [loadCampaign]);
 
   const progress = useMemo(() => {
     if (!campaign || campaign.target === 0) return 0;
@@ -116,7 +117,16 @@ const CampaignDetail = () => {
   };
 
   if (showDonationForm && campaign) {
-    return <DonationForm campaign={campaign} onBack={() => setShowDonationForm(false)} />;
+    return (
+      <DonationForm 
+        campaign={campaign} 
+        onBack={() => {
+          setShowDonationForm(false);
+          loadCampaign();
+        }} 
+        onPaymentSuccess={loadCampaign}
+      />
+    );
   }
 
   return (
